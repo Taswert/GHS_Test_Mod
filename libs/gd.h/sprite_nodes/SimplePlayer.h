@@ -21,12 +21,12 @@ namespace gd {
 
 		virtual bool init(int iconID) {
 			return reinterpret_cast<bool (__thiscall*)(SimplePlayer*, int)>(
-				base + 0x12be20)(this, iconID);
+				base + 0x7fff0)(this, iconID);
 		}
 	public:
 		static auto create(int iconID) {
 			return reinterpret_cast<SimplePlayer* (__fastcall*)(int)>(
-				base + 0x12bd80)(iconID);
+				base + 0x7ff50)(iconID);
 		}
 
 		void updatePlayerFrame(int iconID, IconType iconType) {

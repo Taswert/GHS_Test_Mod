@@ -1428,14 +1428,8 @@
     <ClInclude Include="libs\nfd\src\nfd_common.h">
       <Filter>Header Files\nfd</Filter>
     </ClInclude>
-    <ClInclude Include="LevelBrowserLayer.h">
-      <Filter>libs\gd.h</Filter>
-    </ClInclude>
     <ClInclude Include="libs\gd.h\manager_nodes\GameStatsManager.h">
       <Filter>libs\gd.h</Filter>
-    </ClInclude>
-    <ClInclude Include="GJGameLevel.h">
-      <Filter>Header Files\Layers</Filter>
     </ClInclude>
     <ClInclude Include="libs\gd.h\audio_nodes\AudioEffectsLayer.h">
       <Filter>libs\gd.h</Filter>
@@ -1488,6 +1482,33 @@
     <ClInclude Include="libs\httprequest\HTTPRequest.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="InfoLayer-gdh.h">
+      <Filter>libs\gd.h</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelInfoLayer.h">
+      <Filter>Header Files\Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="InfoLayer.h">
+      <Filter>Header Files\Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectsIds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HitboxNode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\gd.h\other_nodes\StartPosObject.h">
+      <Filter>libs\gd.h</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\gd.h\layers_scenes_transitions_nodes\CreatorLayer.h">
+      <Filter>libs\gd.h</Filter>
+    </ClInclude>
+    <ClInclude Include="CreatorLayer.h">
+      <Filter>Header Files\Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\gd.h\layers_scenes_transitions_nodes\LevelBrowserLayer.h">
+      <Filter>libs\gd.h</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -1520,9 +1541,6 @@
     <ClCompile Include="libs\nfd\src\nfd_win.cpp">
       <Filter>Header Files\nfd</Filter>
     </ClCompile>
-    <ClCompile Include="GJGameLevel.cpp">
-      <Filter>Source Files\Layers</Filter>
-    </ClCompile>
     <ClCompile Include="libs\imgui-hook\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>Header Files\imgui-hook</Filter>
     </ClCompile>
@@ -1551,6 +1569,18 @@
       <Filter>Source Files\Layers</Filter>
     </ClCompile>
     <ClCompile Include="MyRateLayer.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelInfoLayer.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
+    <ClCompile Include="InfoLayer.cpp">
+      <Filter>Source Files\Layers</Filter>
+    </ClCompile>
+    <ClCompile Include="HitboxNode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CreatorLayer.cpp">
       <Filter>Source Files\Layers</Filter>
     </ClCompile>
   </ItemGroup>

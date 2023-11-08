@@ -2,9 +2,11 @@
 #pragma once
 #include "pch.h"
 #include "PauseLayer.h"
-#include "GJGameLevel.h"
+#include "LevelInfoLayer.h"
 #include "EditorPauseLayer.h"
 #include "EditLevelLayer.h"
+#include "InfoLayer.h"
+#include "CreatorLayer.h"
 
 #include <imgui-hook.hpp>
 #include <imgui.h>
@@ -16,6 +18,8 @@
 #include <fstream>
 #include <fcntl.h>
 #include <io.h>
+#include "ObjectsIds.h"
+#include "HitboxNode.h"
 
 //#include "PlayLayer.h"
 std::time_t t;
@@ -36,43 +40,182 @@ int tick = 0;
 int deathTick = 0;
 double lastTime = 0;
 
+int currentStartPos = 0;
+bool fadedoutflag = 0;
+
 ccColor3B playerColor1;
 ccColor3B playerColor2;
 ccColor3B playerColorG;
-
-CCLayer* PauseLayerObject;
+//CCLayer* PauseLayerObject;
 CCLayer* PlayLayerObject;
+CCArray* startPosArr;
 gd::EditorUI* editUI;
 
 std::string savedClipboard;
 
 DWORD cocosbase = (DWORD)GetModuleHandleA("libcocos2d.dll");
 
-//cocos2d::ccColor3B player1col, player2col;
+//cocos2d::ccColor3B player1col, player2col
 
-bool(__thiscall* destroyPlayer)(CCNode* selfig);
-void __fastcall destroyPlayer_H(CCNode* selfig)
-{   
-    isPlayerDead = true;
-    destroyPlayer(selfig);
-    
-    
-    if ((1 / cocos2d::CCDirector::sharedDirector()->getAnimationInterval()) < 60)
-    {
-        DeathTicks = DeathTicks - ((1 / cocos2d::CCDirector::sharedDirector()->getAnimationInterval()) / 60);
-    }
-    else 
-    
-    
-    auto pl = gd::GameManager::sharedState()->getPlayLayer();
+void drawRect(CCDrawNode* drawer, CCRect const& rect, ccColor4F col) {
+    constexpr size_t N = 4;
+    CCPoint vert[N];
+
+    vert[0] = CCPointMake(rect.getMinX(), rect.getMinY());
+    vert[1] = CCPointMake(rect.getMinX(), rect.getMaxY());
+    vert[2] = CCPointMake(rect.getMaxX(), rect.getMaxY());
+    vert[3] = CCPointMake(rect.getMaxX(), rect.getMinY());
+
+    auto colorA = ccc4FFromccc4B(ccc4(0, 0, 0, 0));
+
+    drawer->drawPolygon(vert, N, colorA, 0.5, col);
 }
 
-bool(__thiscall* restartLevel)(gd::PlayLayer* self);
-void __fastcall restartLevel_H(gd::PlayLayer* self) {
+void drawTriangleObj(CCDrawNode* drawer, gd::GameObject* ob, ccColor4F col) {
+
+    ob->updateOrientedBox();
+    if (!ob->getOrientedBox()) return;
+
+    CCPoint triangle[3];
+    auto isFlippedX = ob->getIsFlippedX();
+    auto isFlippedY = ob->getIsFlippedY();
+    auto point1 = ob->getOrientedBox()->getPoint1();
+    auto point2 = ob->getOrientedBox()->getPoint2();
+    auto point3 = ob->getOrientedBox()->getPoint3();
+    auto point4 = ob->getOrientedBox()->getPoint4();
+
+    if (!isFlippedX && !isFlippedY) {
+        triangle[0] = point1;
+        triangle[1] = point2;
+        triangle[2] = point3;
+    }
+    else if (isFlippedX && !isFlippedY) {
+        triangle[0] = point2;
+        triangle[1] = point3;
+        triangle[2] = point4;
+    }
+    else if (!isFlippedX && isFlippedY) {
+        triangle[0] = point1;
+        triangle[1] = point2;
+        triangle[2] = point4;
+    }
+    else if (isFlippedX && isFlippedY) {
+        triangle[0] = point1;
+        triangle[1] = point3;
+        triangle[2] = point4;
+    }
+
+    drawer->drawPolygon(triangle, 3, { 0, 0, 0, 0 }, 0.5, col);
+}
+
+void drawRectObj(CCDrawNode* drawer, gd::GameObject* ob, ccColor4F col) {
+    ob->updateOrientedBox();
+    if (!ob->getOrientedBox()) return;
+
+    CCPoint vert[4];
+    vert[0] = ob->getOrientedBox()->getPoint1();
+    vert[1] = ob->getOrientedBox()->getPoint2();
+    vert[2] = ob->getOrientedBox()->getPoint3();
+    vert[3] = ob->getOrientedBox()->getPoint4();
+
+    drawer->drawPolygon(vert, 4, { 0, 0, 0, 0 }, 0.5, col);
+}
+
+void drawCircleObj(CCDrawNode* drawer, gd::GameObject* ob, ccColor4F col) {
+    ob->updateOrientedBox();
+    if (!ob->getOrientedBox()) return;
+    auto rad = ob->getObjectRadius();
+
+    constexpr size_t N = 64;
+    constexpr float PI = 3.14159265;
+
+    CCPoint vert[N];
+    for (size_t i = 0; i < N; ++i) {
+        vert[i] = ob->getOrientedBox()->getCenterPoint() + CCPointMake(std::cos(2 * PI * i / N), std::sin(2 * PI * i / N)) * rad;
+    }
+    drawer->drawPolygon(vert, N, { 0, 0, 0, 0 }, 0.5, col);
+}
+
+void drawPlayerHitbox(gd::PlayerObject* player, CCDrawNode* drawNode)
+{
+    CCPoint pointRectangle[4];
+    CCRect rectRectangle;
+    CCRect rectRectangleSmall;
+    pointRectangle[0] = player->getOrientedBox()->getPoint1();
+    pointRectangle[1] = player->getOrientedBox()->getPoint2();
+    pointRectangle[2] = player->getOrientedBox()->getPoint3();
+    pointRectangle[3] = player->getOrientedBox()->getPoint4();
+
+    auto p1x = pointRectangle[0].x - pointRectangle[1].x;
+    auto p1y = pointRectangle[0].y - pointRectangle[1].y;
+    auto distance1 = sqrt(p1x * p1x + p1y * p1y);
+
+    auto p2x = pointRectangle[1].x - pointRectangle[2].x;
+    auto p2y = pointRectangle[1].y - pointRectangle[2].y;
+    auto distance2 = sqrt(p2x * p2x + p2y * p2y);
+
+    auto distanceS1 = distance1 / 4;
+    auto distanceS2 = distance2 / 4;
+
+    rectRectangle.setRect(player->getPositionX() - distance1 / 2, player->getPositionY() - distance2 / 2, distance1, distance2);
+    rectRectangleSmall.setRect(player->getPositionX() - distanceS1 / 2, player->getPositionY() - distanceS2 / 2, distanceS1, distanceS2);
+
+    drawRect(drawNode, rectRectangleSmall, { 0, 0, 1, 1 });
+    drawNode->drawPolygon(pointRectangle, 4, { 0, 0, 0, 0 }, 0.5, { 0.5, 0, 0, 1 });
+    drawRect(drawNode, rectRectangle, { 1, 0, 0, 1 });
+}
+
+void drawObjectHitbox(gd::GameObject* obj, CCDrawNode* drawNode) {
+    if (hazard.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 1, 0, 0, 1 });
+    else if (orbsnportals.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 0, 1, 0, 1 });
+    else if (solids.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 0, 0, 1, 1 });
+    else if (ramps.contains(obj->getObjectID()))
+        drawTriangleObj(drawNode, obj, { 0, 0, 1, 1 });
+    else if (saws.contains(obj->getObjectID()))
+        drawCircleObj(drawNode, obj, { 1, 0, 0, 1 });
+}
+
+class ExitAlertProtocol : public gd::FLAlertLayerProtocol {
+protected:
+
+    void FLAlert_Clicked(gd::FLAlertLayer* layer, bool btn2) override
+    {
+        if (btn2)
+        {
+            gd::GameManager::sharedState()->getPlayLayer()->onQuit();
+            gd::GameSoundManager::sharedState()->playSound("quitSound_01.ogg");
+        }
+    }
+};
+ExitAlertProtocol eaProtocol;
+
+bool(__thiscall* PlayLayer_destroyPlayer)(gd::PlayLayer* self, gd::PlayerObject* player);
+void __fastcall PlayLayer_destroyPlayer_H(gd::PlayLayer* self, void*, gd::PlayerObject* player)
+{   
+    isPlayerDead = true;
+
+    //auto playerDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(124));
+    //std::cout << "player = " << player << std::endl;
+    //std::cout << "layer = " << self << std::endl;
+    //std::cout << "drawNode = " << playerDrawNode << std::endl;
+    //std::cout << std::endl;
+
+    //drawPlayerHitbox(self->player1(), playerDrawNode);
+
+    PlayLayer_destroyPlayer(self, player);
+
+    //auto pl = gd::GameManager::sharedState()->getPlayLayer();
+}
+
+bool(__thiscall* PlayLayer_resetLevel)(gd::PlayLayer* self);
+void __fastcall PlayLayer_resetLevel_H(gd::PlayLayer* self) {
     setting().beforeRestartCheatsCount = setting().cheatsCount;
     deathTick = 0;
     tick = 0;
-    restartLevel(self);
+    PlayLayer_resetLevel(self);
 }
 
 bool(__thiscall* CCKeyboardDispatcher_dispatchKeyboardMSG)(cocos2d::CCKeyboardDispatcher* self, int key, bool down);
@@ -84,10 +227,10 @@ void __fastcall CCKeyboardDispatcher_dispatchKeyboardMSG_H(CCKeyboardDispatcher*
                 //here, should destroy pause smh
                 //pl->removeMeAndCleanup();
                 pl->resetLevel();
-                if (PauseLayerObject)
+                if (layers().PauseLayerObject)
                 {
-                    PauseLayerObject->removeMeAndCleanup();
-                    PauseLayerObject = nullptr;
+                    layers().PauseLayerObject->removeMeAndCleanup();
+                    layers().PauseLayerObject = nullptr;
                 }
                 pl->resume();
                 return;
@@ -102,13 +245,88 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
 {
     PlayLayerObject = self;
     editUI = nullptr;
-    PauseLayerObject = nullptr;
+    layers().PauseLayerObject = nullptr;
     isPlayerColorGot = false;
     deathTick = 0;
     tick = 0;
+    fadedoutflag = 0;
+
     if (!PlayLayer_init(self, level)) return false;
+
+
+
+    auto playerDrawNode = CCDrawNode::create();
+    playerDrawNode->setZOrder(1000);
+    playerDrawNode->setTag(124);
+    self->layer()->addChild(playerDrawNode);
+
+    auto objDrawNode = CCDrawNode::create();
+    objDrawNode->setZOrder(1000);
+    objDrawNode->setTag(125);
+    self->layer()->addChild(objDrawNode);
+
+    auto secarr = self->getSections();
+    auto objarr1 = self->getObjects();
+    auto arrcount = secarr->count();
+    
+
+    if (startPosArr) delete startPosArr;
+    auto sposarr = new CCArray;
+    auto firstStartPosObj = gd::StartPosObject::create();
+    sposarr->addObject(firstStartPosObj);
+    startPosArr = sposarr;
+    for (int i = 0; i < secarr->count(); i++)
+    {
+        auto objarr = reinterpret_cast<CCArray*>(secarr->objectAtIndex(i));
+        for (int j = 0; j < objarr->count(); j++)
+        {
+            auto obj = reinterpret_cast<gd::GameObject*>(objarr->objectAtIndex(j));
+            if (obj->getObjectID() == 31) {
+                startPosArr->addObject(obj);
+            }
+        }
+    }
+    currentStartPos = startPosArr->count() - 1;
+
+    if (setting().onStartPosSwitcher)
+    {
+        auto spswitcher = CCLabelBMFont::create("", "bigFont.fnt");
+        spswitcher->setZOrder(5);
+        spswitcher->setScale(0.66f);
+        spswitcher->setAnchorPoint({ 0.5f, 0.5f });
+        spswitcher->setString(CCString::createWithFormat("%d/%d", currentStartPos, startPosArr->count() - 1)->getCString());
+        spswitcher->setPosition({ CCDirector::sharedDirector()->getScreenRight() / 2, 15.f });
+        spswitcher->setTag(45712);
+        if (startPosArr->count() == 1) spswitcher->setVisible(0);
+        self->addChild(spswitcher);
+    }
+
+    
     auto size = CCDirector::sharedDirector()->getWinSize();
     lastTime = CCDirector::sharedDirector()->getTotalFrames() / CCDirector::sharedDirector()->getAnimationInterval();
+
+    if (setting().onObjHitbox)
+    {
+        for (int i = self->getFirstVisibleSection() + 1; i < self->getLastVisibleSection() - 1; i++)
+        {
+            if (i < 0) continue;
+            if (i >= arrcount) break;
+            auto objAtInd = secarr->objectAtIndex(i);
+            auto objarr = reinterpret_cast<CCArray*>(objAtInd);
+
+            for (int j = 0; j < objarr->count(); j++)
+            {
+                auto obj = reinterpret_cast<gd::GameObject*>(objarr->objectAtIndex(j));
+                drawObjectHitbox(obj, objDrawNode);
+            }
+        }
+    }
+
+    if (setting().onPlayerHitbox) {
+        if (self->player1()) drawPlayerHitbox(self->player1(), playerDrawNode);
+        if (self->player2()) drawPlayerHitbox(self->player1(), playerDrawNode);
+    }
+
 
     if (setting().onShowPercents)
     {
@@ -233,6 +451,20 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
         JumpsLabel->setPosition({ 5.f, size.height - 13.f * labelCount });
         self->addChild(JumpsLabel);
     }
+
+    if (setting().onCollidingLabel)
+    {
+        labelCount++;
+        auto collidinglbl = CCLabelBMFont::create("Is Colliding: 0", "bigFont.fnt");
+        collidinglbl->setScale(0.40f);
+        collidinglbl->setZOrder(5);
+        collidinglbl->setAnchorPoint({ 0.f, 0.f });
+        collidinglbl->setOpacity(128);
+        collidinglbl->setTag(45711);
+        collidinglbl->setPosition({ 5.f, size.height - 13.f * labelCount });
+        self->addChild(collidinglbl);
+    }
+    
     labelCount++;
     auto SafeModeLabel = CCLabelBMFont::create("Safe Mode", "bigFont.fnt");
     SafeModeLabel->setScale(0.40f);
@@ -243,6 +475,29 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
     SafeModeLabel->setTag(45710);
     if (!(setting().onSafeMode && setting().onSafeModeLabel)) SafeModeLabel->setVisible(0);
     self->addChild(SafeModeLabel);
+    
+    if (setting().onDebugLabels)
+    {
+        auto adresslbl = CCLabelBMFont::create("adress: ", "bigFont.fnt");
+        adresslbl->setScale(0.40f);
+        adresslbl->setZOrder(5);
+        adresslbl->setAnchorPoint({ 1.f, 0.f });
+        adresslbl->setOpacity(128);
+        adresslbl->setPosition({ size.width - 10.f, size.height - 26.f });
+        adresslbl->setString(CCString::createWithFormat("adress: 0x%p", self)->getCString());
+        self->addChild(adresslbl);
+
+        auto arrcountlbl = CCLabelBMFont::create(" ", "bigFont.fnt");
+        arrcountlbl->setScale(0.40f);
+        arrcountlbl->setZOrder(5);
+        arrcountlbl->setAnchorPoint({ 1.f, 0.f });
+        arrcountlbl->setOpacity(128);
+        arrcountlbl->setPosition({ size.width - 10.f, size.height - 39.f });
+        arrcountlbl->setString(CCString::createWithFormat("count: %d", startPosArr->count())->getCString());
+        self->addChild(arrcountlbl);
+    }
+    
+    
     /*
     labelCount++;
     auto deathLabel = CCLabelBMFont::create(" ", "bigFont.fnt");
@@ -265,11 +520,6 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
     */
     
     //checkpoint_01_001.png
-
-    ccDrawRect(CCPoint(0, 0), CCPoint(10, 10));
-
-    auto rect = CCRect::CCRect();
-    rect.setRect(150, 150, 100, 100);
     return true;
 }
 
@@ -280,41 +530,124 @@ inline bool playerTouchesObject(CCRect* playerRect, CCRect* hitboxRect)
 }
 
 
+bool rKeyFlag = true;
+bool lKeyFlag = true;
 
 bool(__thiscall* PlayLayer_update)(gd::PlayLayer* self, float dt);
 void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
 {
-    PauseLayerObject = nullptr;
+    layers().PauseLayerObject = nullptr;
     PlayLayer_update(self, dt);
+
     auto size = CCDirector::sharedDirector()->getWinSize();
     float fps = ImGui::GetIO().Framerate;// = 1 / CCDirector::sharedDirector()->getAnimationInterval();
     float currentTime = CCDirector::sharedDirector()->getTotalFrames();
     const auto bar = gd::GameManager::sharedState()->getShowProgressBar();
     auto audioScale = self->player1()->getAudioScale() > 1.f ? 1.f : self->player1()->getAudioScale();
     
-    auto percentLabel = self->getChildByTag(4571);
-    auto CheatIndicatorLabel = self->getChildByTag(4572);
-    auto AttemptsLabel = self->getChildByTag(4573);
-    auto JumpsLabel = self->getChildByTag(4574);
-    auto GlobalTimeLabel = self->getChildByTag(4575);
-    auto FPSLabel = self->getChildByTag(4576);
-    auto messageLabel = self->getChildByTag(4577);
-    auto noclipAccLabel = self->getChildByTag(4578);
-    auto deathLabel = self->getChildByTag(4579);
+    auto percentLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4571));
+    //auto CheatIndicatorLabel = self->getChildByTag(4572);
+    auto AttemptsLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4573));
+    auto JumpsLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4574));
+    auto GlobalTimeLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4575));
+    auto FPSLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4576));
+    auto messageLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4577));
+    auto noclipAccLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4578));
+    auto deathLabel = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(4579));
+    auto collidinglbl = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(45711));
+    auto spswitcherlbl = reinterpret_cast<CCLabelBMFont*>(self->getChildByTag(45712));
     
 
-    
+    //Start Pos Switcher
+    auto secarr = self->getSections();
+    auto arrcount = secarr->count();
+    if (spswitcherlbl)
+    {
+        auto fadeout = CCSequence::create(CCDelayTime::create(2.f), CCFadeOut::create(0.5f), nullptr);
+        if (!fadedoutflag)
+        {
+            spswitcherlbl->runAction(fadeout);
+            fadedoutflag = !fadedoutflag;
+        }
+        if (GetAsyncKeyState(0x27) && rKeyFlag && startPosArr->count() > 1)
+        {
+            rKeyFlag = false;
+            if (currentStartPos == startPosArr->count() - 1) currentStartPos = 0;
+            else currentStartPos++;
+            if (currentStartPos != 0) {
+                self->setPlayerStartPosition(reinterpret_cast<gd::StartPosObject*>(startPosArr->objectAtIndex(currentStartPos))->getOrientedBox()->getCenterPoint());
+                self->setStartPosObject(reinterpret_cast<gd::StartPosObject*>(startPosArr->objectAtIndex(currentStartPos)));
+            }
+            else {
+                self->setPlayerStartPosition({ 0, 105 });
+                self->setStartPosObject(nullptr);
+            }
+            self->resetLevel();
+            spswitcherlbl->setString(CCString::createWithFormat("%d/%d", currentStartPos, startPosArr->count() - 1)->getCString());
+            spswitcherlbl->stopAllActions();
+            spswitcherlbl->setOpacity(255);
+            spswitcherlbl->runAction(fadeout);
+        }
+        else if (!GetAsyncKeyState(0x27)) rKeyFlag = true;
 
-    if (percentLabel) {
-        const auto value = self->player1()->getPositionX() / self->levelLength() * 100.f;
-
-        percentLabel->setAnchorPoint({ bar ? 0.f : 0.5f, 0.5f });
-        percentLabel->setPosition({ size.width / 2.f + (bar ? 107.2f : 0.f), size.height - 8.f });
-
-        if (value < 100.0f) reinterpret_cast<CCLabelBMFont*>(percentLabel)->setString(CCString::createWithFormat("%.2f%%", value)->getCString());
-        else reinterpret_cast<CCLabelBMFont*>(percentLabel)->setString(CCString::create("100.00%")->getCString());
-
+        if (GetAsyncKeyState(0x25) && lKeyFlag && startPosArr->count() > 1)
+        {
+            lKeyFlag = false;
+            if (currentStartPos == 0) currentStartPos = startPosArr->count() - 1;
+            else currentStartPos--;
+            if (currentStartPos != 0) {
+                self->setPlayerStartPosition(reinterpret_cast<gd::StartPosObject*>(startPosArr->objectAtIndex(currentStartPos))->getOrientedBox()->getCenterPoint());
+                self->setStartPosObject(reinterpret_cast<gd::StartPosObject*>(startPosArr->objectAtIndex(currentStartPos)));
+            }
+            else {
+                self->setPlayerStartPosition({ 0, 105 });
+                self->setStartPosObject(nullptr);
+            }
+            self->resetLevel();
+            spswitcherlbl->setString(CCString::createWithFormat("%d/%d", currentStartPos, startPosArr->count() - 1)->getCString());
+            spswitcherlbl->stopAllActions();
+            spswitcherlbl->setOpacity(255);
+            spswitcherlbl->runAction(fadeout);
+        }
+        else if (!GetAsyncKeyState(0x25)) lKeyFlag = true;
     }
+
+    //Player Hiboxes
+    
+    auto playerDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(124));
+    playerDrawNode->clear();
+    if (setting().onPlayerHitbox || (self->player1()->getIsDead() && setting().onHitboxesOnDeath))
+    {
+        if (self->player1())
+        {
+            drawPlayerHitbox(self->player1(), playerDrawNode);
+        }
+        if (self->player2())
+        {
+            drawPlayerHitbox(self->player2(), playerDrawNode);
+        }
+    }
+
+    //Object Hitboxes
+    auto objDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(125));
+    objDrawNode->clear();
+    if (setting().onObjHitbox || (self->player1()->getIsDead() && setting().onHitboxesOnDeath))
+    {
+        for (int i = self->getFirstVisibleSection() + 1; i < self->getLastVisibleSection() - 1; i++)
+        {
+            if (i < 0) continue;
+            if (i >= arrcount) break;
+            auto objAtInd = secarr->objectAtIndex(i);
+            auto objarr = reinterpret_cast<CCArray*>(objAtInd);
+
+            for (int j = 0; j < objarr->count(); j++)
+            {
+                auto obj = reinterpret_cast<gd::GameObject*>(objarr->objectAtIndex(j));
+                drawObjectHitbox(obj, objDrawNode);
+            }
+        }
+    }
+    
     
     //if (isPlayerDead)
     //{
@@ -333,26 +666,33 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
         reinterpret_cast<CCLabelBMFont*>(noclipAccLabel)->setString(CCString::createWithFormat("%.2f%%", accuracy)->getCString());
     }
     */
+
     
+    //Labels
+    if (percentLabel) {
+        const auto value = self->player1()->getPositionX() / self->levelLength() * 100.f;
+
+        percentLabel->setAnchorPoint({ bar ? 0.f : 0.5f, 0.5f });
+        percentLabel->setPosition({ size.width / 2.f + (bar ? 107.2f : 0.f), size.height - 8.f });
+
+        if (value < 100.0f) percentLabel->setString(CCString::createWithFormat("%.2f%%", value)->getCString());
+        else percentLabel->setString(CCString::create("100.00%")->getCString());
+
+    }
+
     if (noclipAccLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(noclipAccLabel)->setString(CCString::createWithFormat("Time: %f", self->getClkTimer())->getCString());
+        noclipAccLabel->setString(CCString::createWithFormat("Time: %f", self->getClkTimer())->getCString());
     }
-    
-    if (currentTime - lastTime >= 1.0)
-    {
-        fps = CCDirector::sharedDirector()->getAnimationInterval() / tick;
-        tick = 0;
-        lastTime += 1.0;
-    }
+
     if (FPSLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(FPSLabel)->setString(CCString::createWithFormat("FPS: %.f", roundf(fps)/*CCDirector::sharedDirector()->getTotalFrames()*/)->getCString());
+        FPSLabel->setString(CCString::createWithFormat("FPS: %.f", roundf(fps)/*CCDirector::sharedDirector()->getTotalFrames()*/)->getCString());
     }
     
     if (JumpsLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(JumpsLabel)->setString(CCString::createWithFormat(self->jumpsCount() == 1 ? "%d Jump" : "%d Jumps", self->jumpsCount())->getCString());
+        JumpsLabel->setString(CCString::createWithFormat(self->jumpsCount() == 1 ? "%d Jump" : "%d Jumps", self->jumpsCount())->getCString());
     }
 
     if (GlobalTimeLabel)
@@ -361,33 +701,36 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
         auto tm = *std::localtime(&t);
         std::ostringstream s;
         s << std::put_time(&tm, "%H:%M:%S");
-        reinterpret_cast<CCLabelBMFont*>(GlobalTimeLabel)->setString(CCString::create(s.str().c_str())->getCString());
+        GlobalTimeLabel->setString(CCString::create(s.str().c_str())->getCString());
     }
 
     if (AttemptsLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(AttemptsLabel)->setString(CCString::createWithFormat("Attempt %d", self->attemptsCount())->getCString());
+        AttemptsLabel->setString(CCString::createWithFormat("Attempt %d", self->attemptsCount())->getCString());
     }
 
     if (messageLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(messageLabel)->setString(CCString::create(setting().message)->getCString());
+        messageLabel->setString(CCString::create(setting().message)->getCString());
     }
 
     if (deathLabel)
     {
-        reinterpret_cast<CCLabelBMFont*>(deathLabel)->setString(CCString::createWithFormat("Dead - %d", isPlayerDead)->getCString());
+        deathLabel->setString(CCString::createWithFormat("Dead - %d", isPlayerDead)->getCString());
     }
 
-    //self->destroyPlayer(self->player1());
-    //some fun stuff
-    /*
-    self->attemptsLabel()->setPositionX(self->player1()->getPositionX());
-    self->attemptsLabel()->setPositionY(self->player1()->getPositionY()+35);
-    self->attemptsLabel()->setScale(0.75f);
-    self->attemptsLabel()->setString(CCString::createWithFormat(self->attemptsCount() == 1 ? "I haven't died!" : self->attemptsCount() == 2 ? "Died %d time..." : "Died %d times...", self->attemptsCount()-1)->getCString());
-    */
-    
+    if (collidinglbl)
+    {
+        collidinglbl->setString(CCString::createWithFormat("Is Colliding: %d", 1/*self->player1()->collidedWithObject()*/)->getCString());
+    }
+
+    //idk what is that
+    if (currentTime - lastTime >= 1.0)
+    {
+        fps = CCDirector::sharedDirector()->getAnimationInterval() / tick;
+        tick = 0;
+        lastTime += 1.0;
+    }
 
     /*
     auto rect = self->player1()->getTextureRect();
@@ -419,6 +762,8 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
         reinterpret_cast<CCLabelBMFont*>(NoclipAccLabel)->setString(CCString::createWithFormat("Noclip Accuracy: %.2f%%", NoclipAcc)->getCString());
     }
     */
+
+    //Player color settings
     if (isPlayerColorGot == false)
     {
         playerColor1 = self->player1()->getFirstColor();
@@ -446,12 +791,12 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
         self->player2()->setColor(self->player1()->getSecondColor());
         self->player2()->setSecondColor(self->player1()->getColor());
 
-        self->player2()->setGlowColor(self->player1()->getSecondColor());
+        self->player2()->setGlowColor(self->player1()->getGlowColor());
         //self->player2()->setColor3(self->player1()->getColor3());
 
         self->player2()->setColorSecondVehicle(self->player1()->getColor());
         //self->player2()->setColor5(self->player1()->getColor5());
-        self->player2()->setColorGlowVehicle(self->player1()->getSecondColor());
+        self->player2()->setColorGlowVehicle(self->player1()->getGlowColor());
         //self->player2()->setColor7(self->player1()->getColor7());
 
         self->player2()->setWaveTrailColor(self->player1()->getSecondColor());
@@ -505,6 +850,8 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
         self->player1()->getGlow()->setVisible(1);
         self->player1()->getGlowVehicle()->setVisible(1);
     }*/
+
+
     if (setting().onHidePlayer)
     {
         self->player1()->setVisible(0);
@@ -550,27 +897,27 @@ public:
         if (readBuffer == "1")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cb>moderator</c> privilegies!", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 1;
         }
         else if (readBuffer == "2")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cp>elder moderator</c> privilegies!", "Ok", nullptr, 280.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 2;
         }
         else if (readBuffer == "3")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cr>administrator</c> privilegies!", "Ok", nullptr, 280.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 3;
         }
         else if (readBuffer == "4")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cy>owner</c> privilegies!", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 4;
         }
         else if (readBuffer == "-1")
         {
             gd::FLAlertLayer::create(nullptr, "Admin Check", "You have no moderator privilegies.", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = false;
+            setting().roleType = 0;
         }
         else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
         std::cout << "ADMIN CHECK PROTOCOL" << std::endl;
@@ -602,8 +949,11 @@ void adminInitCheck()
         curl_easy_cleanup(curl);
     }
     curl_global_cleanup();
-    if (readBuffer == "1") setting().isAdmin = true;
-    else if (readBuffer == "-1") setting().isAdmin = false;
+    if (readBuffer == "1") setting().roleType = 1;
+    else if (readBuffer == "2") setting().roleType = 2;
+    else if (readBuffer == "3") setting().roleType = 3;
+    else if (readBuffer == "4") setting().roleType = 4;
+    else if (readBuffer == "-1") setting().roleType = 0;
     std::cout << "ADMIN INIT CHECK PROTOCOL" << std::endl;
     std::cout << postfield << std::endl;
     std::cout << readBuffer << std::endl;
@@ -623,7 +973,7 @@ bool __fastcall MenuLayer_init_H(CCLayer* self, void*) {
         adminInitCheck();
         isFirstLoaded = true;
     }
-    auto adminCheckSprite = CCSprite::create("GJ_button_03.png"); //
+    auto adminCheckSprite = CCSprite::create("GJ_button_03.png");
     if (!(adminCheckSprite->initWithFile("accountBtn_pendingRequest_001.png")))
     {
         adminCheckSprite->initWithFile("GJ_button_03.png");
@@ -644,7 +994,9 @@ bool __fastcall MenuLayer_init_H(CCLayer* self, void*) {
 bool(__thiscall* PauseLayer_init)(CCLayer* self);
 bool __fastcall PauseLayer_init_hook(CCLayer* self)
 {
-    PauseLayerObject = self;
+    layers().PauseLayerObject = self;
+    if (setting().onHidePause) self->setVisible(0);
+    else self->setVisible(1);
     GetLocalTime(&st);
     bool result = PauseLayer_init(self);
     return result;
@@ -653,7 +1005,7 @@ bool __fastcall PauseLayer_init_hook(CCLayer* self)
 bool(__thiscall* PlayLayer_resume)(CCLayer* self);
 bool __fastcall PlayLayer_resume_H(CCLayer* self)
 {
-    PauseLayerObject = nullptr;
+    layers().PauseLayerObject = nullptr;
     bool result = PlayLayer_resume(self);
     return result;
 }
@@ -661,20 +1013,28 @@ bool __fastcall PlayLayer_resume_H(CCLayer* self)
 bool(__thiscall* PauseLayer_onEdit)(CCLayer* self);
 void __fastcall PauseLayer_onEdit_H(CCLayer* self)
 {
+    layers().PauseLayerObject = nullptr;
     PlayLayerObject = nullptr;
     PauseLayer_onEdit(self);
 }
 
+bool(__thiscall* PauseLayer_onQuit)(CCObject* btn);
+void __fastcall PauseLayer_onQuit_H(CCObject* btn)
+{
+    PlayLayerObject = nullptr;
+    if (setting().onConfirmExit) gd::FLAlertLayer::create(&eaProtocol, "Confirm Exit", "Are you sure, you want to <cr>exit</c> the level?", "No", "Yes", 320.f, false, 0)->show();
+    PauseLayer_onQuit(btn);
+}
+
 bool(__thiscall* PlayLayer_onQuit)(CCNode* self);
 void __fastcall PlayLayer_onQuit_H(CCNode* self) {
-
+    layers().PauseLayerObject = nullptr;
     PlayLayerObject = nullptr;
     PlayLayer_onQuit(self);
 }
 
 bool(__thiscall* GarageLayer_init)(CCLayer* self);
 bool __fastcall GarageLayer_init_H(CCLayer* self) {
-
     auto drawer = CCDrawNode::create();
     drawer->setZOrder(10);
     drawer->drawDot({ 200, 200 }, 5.f, { 255.f, 255.f, 255.f, 255.f });
@@ -711,6 +1071,7 @@ void __fastcall EndLayer_init_H(CCLayer* self) {
     label->setScale(10.f);
     label->setPosition(self->getPosition());
     self->addChild(label);*/
+    
     EndLayer_init(self);
     
 }
@@ -720,6 +1081,66 @@ bool __fastcall EditorUI_init_H(gd::EditorUI* self, void*, CCLayer* editor) {
     PlayLayerObject = nullptr;
     editUI = self;
     bool result = EditorUI_init(self, editor);
+
+    if (setting().onDebugLabels)
+    {
+        auto editorlbl = CCLabelBMFont::create("", "chatFont.fnt");
+        editorlbl->setString(CCString::createWithFormat("editor pointer: %p", self)->getCString());
+        editorlbl->setAnchorPoint({ 1.f, 0.5f });
+        editorlbl->setPosition(CCDirector::sharedDirector()->getScreenRight() - 120, 130);
+        editorlbl->setScale(0.5f);
+        self->addChild(editorlbl);
+
+        auto lvllbl = CCLabelBMFont::create("", "chatFont.fnt");
+        lvllbl->setString(CCString::createWithFormat("lvl pointer: %p", self->getLevelEditorLayer())->getCString());
+        lvllbl->setAnchorPoint({ 1.f, 0.5f });
+        lvllbl->setPosition(CCDirector::sharedDirector()->getScreenRight() - 120, 120);
+        lvllbl->setScale(0.5f);
+        lvllbl->setTag(4571);
+        self->addChild(lvllbl);
+    }
+
+    if (setting().onSelectedObjectLabel)
+    {
+
+        std::vector<gd::GameObject*> gameObjectVector = self->getSelectedObjects();
+        auto selobjcountlbl = CCLabelBMFont::create("", "chatFont.fnt");
+        selobjcountlbl->setString(CCString::createWithFormat("Objects: %d", gameObjectVector.size())->getCString());
+        selobjcountlbl->setVisible(0);
+        selobjcountlbl->setTag(4570);
+        selobjcountlbl->setAnchorPoint({ 1.f, 0.5f });
+        selobjcountlbl->setPosition(150, CCDirector::sharedDirector()->getScreenTop() - 60);
+        selobjcountlbl->setScale(0.66f);
+        self->addChild(selobjcountlbl);
+
+        gd::GameObject* selectedObject = from<gd::GameObject*>(self, 0x258);
+        auto selobjplbl = CCLabelBMFont::create("", "chatFont.fnt");
+        selobjplbl->setString(CCString::createWithFormat("address: %p", selectedObject)->getCString());
+        selobjplbl->setVisible(0);
+        selobjplbl->setTag(4572);
+        selobjplbl->setAnchorPoint({ 1.f, 0.5f });
+        selobjplbl->setPosition(150, CCDirector::sharedDirector()->getScreenTop() - 70);
+        selobjplbl->setScale(0.66f);
+        self->addChild(selobjplbl);
+
+        auto selobjidlbl = CCLabelBMFont::create("", "chatFont.fnt");
+        selobjidlbl->setString(CCString::createWithFormat("ID: %d", 0)->getCString());
+        selobjidlbl->setVisible(0);
+        selobjidlbl->setTag(4573);
+        selobjidlbl->setAnchorPoint({ 1.f, 0.5f });
+        selobjidlbl->setPosition(150, CCDirector::sharedDirector()->getScreenTop() - 80);
+        selobjidlbl->setScale(0.66f);
+        self->addChild(selobjidlbl);
+
+        auto selobjtype = CCLabelBMFont::create("", "chatFont.fnt");
+        selobjtype->setString(CCString::createWithFormat("Type: %d", 0)->getCString());
+        selobjtype->setVisible(0);
+        selobjtype->setTag(4574);
+        selobjtype->setAnchorPoint({ 1.f, 0.5f });
+        selobjtype->setPosition(150, CCDirector::sharedDirector()->getScreenTop() - 90);
+        selobjtype->setScale(0.66f);
+        self->addChild(selobjtype);
+    }
     if (setting().onPersistentClipboard)
     {
         if (!savedClipboard.empty()) {
@@ -730,13 +1151,50 @@ bool __fastcall EditorUI_init_H(gd::EditorUI* self, void*, CCLayer* editor) {
     return result;
 }
 
+
+class CustomizeObjectLayer : public gd::FLAlertLayer
+{
+public:
+    void hightlightSelected(gd::ButtonSprite* spr) {
+        reinterpret_cast<void(__thiscall*)(CustomizeObjectLayer*, gd::ButtonSprite*)>(gd::base + 0x2e4c0)(this, spr);
+    }
+};
+
+bool(__thiscall* CustomizeObjectLayer_init)(CustomizeObjectLayer* self, gd::GameObject* obj, CCArray* objs);
+bool __fastcall CustomizeObjectLayer_init_H(CustomizeObjectLayer* self, void* edx, gd::GameObject* obj, CCArray* objs) {
+    if (!CustomizeObjectLayer_init(self, obj, objs)) return false;
+
+    auto sprite = gd::ButtonSprite::create("3DL", 250, 0, 0.4, false, "bigFont.fnt", "GJ_button_04.png", 25.0);
+    auto button = gd::CCMenuItemSpriteExtra::create(sprite, nullptr, self, union_cast<SEL_MenuHandler>(gd::base + 0x2e390));
+    button->setTag(8);
+    button->setPosition(100, 0);
+    from<CCArray*>(self, 0x1c4)->addObject(sprite);
+    self->getMenu()->addChild(button);
+
+    if (obj && obj->getColorMode() == 8) {
+        self->hightlightSelected(sprite);
+    }
+
+    return true;
+}
+
+//bool(__thiscall* EditorUI_selectObject)(gd::EditorUI* self, gd::GameObject* obj);
+//void __fastcall EditorUI_selectObject_H(gd::EditorUI* self, void* edx, gd::GameObject* obj)
+//{
+//    EditorUI_selectObject(self, obj);
+//}
+//
+//bool(__thiscall* EditorUI_selectObjects)(gd::EditorUI* self, CCArray* obj);
+//void __fastcall EditorUI_selectObjects_H(gd::EditorUI* self, void* edx, CCArray* obj)
+//{
+//    EditorUI_selectObjects(self, obj);
+//}
+
 bool(__thiscall* EditorUI_dtor)(gd::EditorUI* self);
 bool __fastcall EditorUI_dtor_H(gd::EditorUI* self) {
     //editUI = self;
-    if (setting().onPersistentClipboard)
-    {
-        savedClipboard = self->clipboard();
-    }
+    editUI = nullptr;
+    if (setting().onPersistentClipboard) savedClipboard = self->clipboard();
     EditorUI_dtor(self);
 }
 
@@ -744,6 +1202,12 @@ bool(__thiscall* EditorPauseLayer_onExitEditor)(CCObject* self);
 void __fastcall EditorPauseLayer_onExitEditor_H(CCObject* self) {
     editUI = nullptr;
     EditorPauseLayer_onExitEditor(self);
+}
+
+bool(__thiscall* EditorPauseLayer_saveLevel)(CCLayer* self);
+void __fastcall EditorPauseLayer_saveLevel_H(CCLayer* self) {
+    editUI = nullptr;
+    EditorPauseLayer_saveLevel(self);
 }
 
 //bool(__thiscall* MenuLayer_init)(CCLayer* self);
@@ -764,17 +1228,58 @@ void __fastcall Scheduler_update_H(CCScheduler* self, void* edx, float idk) {
     {
         BOOL bRet = SetLocalTime(&st);
     }*/
-
+    //cocos2d::extension::RGBA
     if (editUI)
     {
         if (setting().onHideEditorUI) editUI->setVisible(0);
         else editUI->setVisible(1);
+        auto selobjcountlbl = editUI->getChildByTag(4570);
+        auto lvllbl = editUI->getChildByTag(4571);
+        auto selobjplbl = editUI->getChildByTag(4572);
+        auto selobjidlbl = editUI->getChildByTag(4573);
+        auto selobjtype = editUI->getChildByTag(4574);
+
+        if (selobjtype) {
+            if (editUI->getSingleSelectedObj() == 0) selobjtype->setVisible(0);
+            else
+            {
+                reinterpret_cast<CCLabelBMFont*>(selobjtype)->setString(CCString::createWithFormat("Type: %d", editUI->getSingleSelectedObj()->getType())->getCString());
+                selobjtype->setVisible(1);
+            }
+        }
+        if (selobjidlbl)
+        {
+            if (editUI->getSingleSelectedObj() == 0) selobjidlbl->setVisible(0);
+            else
+            {
+                reinterpret_cast<CCLabelBMFont*>(selobjidlbl)->setString(CCString::createWithFormat("ID: %d", editUI->getSingleSelectedObj()->getObjectID())->getCString());
+                selobjidlbl->setVisible(1);
+            }
+        }
+        if (selobjcountlbl)
+        {
+            reinterpret_cast<CCLabelBMFont*>(selobjcountlbl)->setString(CCString::createWithFormat("Objects: %d", (editUI->getSelectedObjectsOfCCArray()->count()))->getCString());
+            if (editUI->getSelectedObjectsOfCCArray()->count() == 0) selobjcountlbl->setVisible(0);
+            else selobjcountlbl->setVisible(1);
+        }
+        if (lvllbl)
+        {
+            reinterpret_cast<CCLabelBMFont*>(lvllbl)->setString(CCString::createWithFormat("lvl pointer: %p", editUI->getLevelEditorLayer())->getCString());
+        }
+        if (selobjplbl)
+        {
+            if (editUI->getSingleSelectedObj() == 0) selobjplbl->setVisible(0);
+            else {
+                reinterpret_cast<CCLabelBMFont*>(selobjplbl)->setString(CCString::createWithFormat("address: %p", editUI->getSingleSelectedObj())->getCString());
+                selobjplbl->setVisible(1);
+            }
+        }
     }
 
     if (PlayLayerObject)
     {
-        auto SafeModeLabel = PlayLayerObject->getChildByTag(45710);
-        auto CheatIndicatorLabel = PlayLayerObject->getChildByTag(4572);
+        auto SafeModeLabel = reinterpret_cast<CCLabelBMFont*>(PlayLayerObject->getChildByTag(45710));
+        auto CheatIndicatorLabel = reinterpret_cast<CCLabelBMFont*>(PlayLayerObject->getChildByTag(4572));
 
         if (SafeModeLabel)
         {
@@ -785,7 +1290,7 @@ void __fastcall Scheduler_update_H(CCScheduler* self, void* edx, float idk) {
         if (CheatIndicatorLabel)
         {
             ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4EE9DA), &setting().CurrentNoclipByte, 1, 0);
-            reinterpret_cast<CCLabelBMFont*>(CheatIndicatorLabel)->setColor({ 0, 255, 0 });
+            CheatIndicatorLabel->setColor({ 0, 255, 0 });
 
             if (setting().NoclipByte != setting().CurrentNoclipByte && setting().onNoclipOutOfMe == false) { setting().cheatsCount++; setting().beforeRestartCheatsCount++; setting().onNoclipOutOfMe = true; }
             else if (setting().NoclipByte == setting().CurrentNoclipByte && setting().onNoclipOutOfMe == true) { setting().cheatsCount--; setting().onNoclipOutOfMe = false; }
@@ -795,21 +1300,21 @@ void __fastcall Scheduler_update_H(CCScheduler* self, void* edx, float idk) {
                 setting().beforeRestartCheatsCount == 0 &&
                 setting().NoclipByte == setting().CurrentNoclipByte &&
                 !setting().onSafeMode)
-                reinterpret_cast<CCLabelBMFont*>(CheatIndicatorLabel)->setColor({ 0, 255, 0 });
+                CheatIndicatorLabel->setColor({ 0, 255, 0 });
 
             //no cheats, no before restart cheats, safe mode
             else if (setting().cheatsCount == 0 &&
                 setting().beforeRestartCheatsCount == 0 &&
                 setting().NoclipByte == setting().CurrentNoclipByte &&
                 setting().onSafeMode)
-                reinterpret_cast<CCLabelBMFont*>(CheatIndicatorLabel)->setColor({ 255, 255, 0 });
+                CheatIndicatorLabel->setColor({ 255, 255, 0 });
 
             //no cheats
             else if (setting().cheatsCount == 0 &&
                 setting().NoclipByte == setting().CurrentNoclipByte)
-                reinterpret_cast<CCLabelBMFont*>(CheatIndicatorLabel)->setColor({ 255, 128, 0 });
+                CheatIndicatorLabel->setColor({ 255, 128, 0 });
 
-            else reinterpret_cast<CCLabelBMFont*>(CheatIndicatorLabel)->setColor({ 255, 0, 0 });
+            else CheatIndicatorLabel->setColor({ 255, 0, 0 });
         }
     }
     
@@ -841,6 +1346,7 @@ void idk() {
     return reinterpret_cast<void(__fastcall*)()>(gd::base + 0x47100)();
 }
 
+
 void objectAdd(int id)
 {
     __asm {
@@ -854,6 +1360,7 @@ void objectAdd(int id)
         call edi
     }
 }
+
 
 bool(__thiscall* ObjectToolboxAdd_RampTab)();
 void __fastcall ObjectToolboxAdd_RampTab_H() {
@@ -903,9 +1410,23 @@ void __fastcall ObjectToolboxAdd_TriggerTab_H() {
 //mov ecx, esi
 //call edi
 
+//void(__thiscall* GraphicsSettingsApply)(CCObject* btn);
+//void __fastcall GraphicsSettingsApply_H(CCObject* btn) {
+//    setup_imgui_menu();
+//    GraphicsSettingsApply(btn);
+//}
 
 DWORD WINAPI my_thread(void* hModule) {
     WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x3A21B), "\xB8\x01\x00\x00\x00\x90\x90", 7, NULL);
+
+    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x49bfab), "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 11, NULL); //LevelInfoLayer init (deleting info icon)
+
+    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x8A3DB), "\x83\xF8\x61\x0F\x84\xAB\x01\x00\x00\x90\x90\x90\x90\x90\x90\x90\x90\x90", 18, NULL); //HallOfShame onBack patching
+    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x324000), "\x48\x61\x6c\x6c\x20\x6f\x66\x20\x46\x61\x6d\x65\x00", 13, NULL); //Hall of Shame string
+    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x89D15), "\x75\x0A\xBE\x1C\x3E\x52\x00\xE9\x81\x01\x00\x00\x83\xF8\x62\x75\x0A\xBE\x2C\x3E\x52\x00\xE9\x73\x01\x00\x00\x83\xF8\x61\x75\x0A\xBE\x00\x40\x72\x00\xE9\x64\x01\x00\x00\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 55, NULL);
+    //also Hall of Shame string (but updating)
+    //75 0A BE 1C 3E 52 00 E9 81 01 00 00 83 F8 62 75 0A BE 2C 3E 52 00 E9 73 01 00 00 83 F8 61 75 0A BE 00 40 72 00 E9 64 01 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90
+
     ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4EE9DA), &setting().NoclipByte, 1, 0);
     if (MH_Initialize() != MH_OK)
     {
@@ -916,17 +1437,29 @@ DWORD WINAPI my_thread(void* hModule) {
     //0xd61b0 EditBTN
     //0xd64c0 MenuBTN!
     
-    /*
+    
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0xee990),
-        reinterpret_cast<void*>(&destroyPlayer_H),
-        reinterpret_cast<void**>(&destroyPlayer));
-    */
+        reinterpret_cast<void*>(&PlayLayer_destroyPlayer_H),
+        reinterpret_cast<void**>(&PlayLayer_destroyPlayer));
+    
+    //base + 0x89d15
 
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
-
-
+    /*MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x44864),
+        reinterpret_cast<void*>(&GraphicsSettingsApply_H),
+        reinterpret_cast<void**>(&GraphicsSettingsApply));*/
+    //gd::base + 0x48a3cc
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x2cd53),
+        CreatorLayer::CreatorLayer_menu_H,
+        reinterpret_cast<void**>(&CreatorLayer::CreatorLayer_menu));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x2cc30),
+        CreatorLayer::CreatorLayer_init_H,
+        reinterpret_cast<void**>(&CreatorLayer::CreatorLayer_init));
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x44864),
         reinterpret_cast<void*>(&ObjectToolboxAdd_RampTab_H),
@@ -974,7 +1507,25 @@ DWORD WINAPI my_thread(void* hModule) {
 
 
     MH_CreateHook(
-        reinterpret_cast<void*>(gd::base + 0xE1b10), 
+        reinterpret_cast<void*>(gd::base + 0xd4510),
+        reinterpret_cast<void**>(&PauseLayer_init_hook),
+        reinterpret_cast<void**>(&PauseLayer_init));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0xd61b0),
+        reinterpret_cast<void**>(&PauseLayer_onEdit_H),
+        reinterpret_cast<void**>(&PauseLayer_onEdit));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0xd64c0),
+        reinterpret_cast<void*>(&PauseLayer_onQuit_H),
+        reinterpret_cast<void**>(&PauseLayer_onQuit));
+
+
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0xf03f0),
+        reinterpret_cast<void**>(&PlayLayer_resetLevel_H),
+        reinterpret_cast<void**>(&PlayLayer_resetLevel));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0xE1b10),
         reinterpret_cast<void**>(&PlayLayer_init_H),
         reinterpret_cast<void**>(&PlayLayer_init));
     MH_CreateHook(
@@ -986,27 +1537,19 @@ DWORD WINAPI my_thread(void* hModule) {
         reinterpret_cast<void**>(&PlayLayer_resume_H),
         reinterpret_cast<void**>(&PlayLayer_resume));
     MH_CreateHook(
-        reinterpret_cast<void*>(gd::base + 0xf03f0),
-        reinterpret_cast<void**>(&restartLevel_H),
-        reinterpret_cast<void**>(&restartLevel));
-
-    MH_CreateHook(
-        reinterpret_cast<void*>(gd::base + 0xd4510),
-        reinterpret_cast<void**>(&PauseLayer_init_hook),
-        reinterpret_cast<void**>(&PauseLayer_init));
-    MH_CreateHook(
-        reinterpret_cast<void*>(gd::base + 0xd61b0),
-        reinterpret_cast<void**>(&PauseLayer_onEdit_H),
-        reinterpret_cast<void**>(&PauseLayer_onEdit));
-    MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0xf1fe0),
         reinterpret_cast<void*>(&PlayLayer_onQuit_H),
         reinterpret_cast<void**>(&PlayLayer_onQuit));
+
 
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x3f1e0),
         reinterpret_cast<void**>(&EditorPauseLayer_onExitEditor_H),
         reinterpret_cast<void**>(&EditorPauseLayer_onExitEditor));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x3ed20),
+        reinterpret_cast<void**>(&EditorPauseLayer_saveLevel_H),
+        reinterpret_cast<void**>(&EditorPauseLayer_saveLevel));
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x3e150),
         EditorPauseLayer::EditorPauseLayer_init_hook,
@@ -1033,6 +1576,20 @@ DWORD WINAPI my_thread(void* hModule) {
         reinterpret_cast<void*>(gd::base + 0x3f9d0),
         reinterpret_cast<void**>(&EditorUI_dtor_H),
         reinterpret_cast<void**>(&EditorUI_dtor));
+    MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x2da00),
+        reinterpret_cast<void**>(&CustomizeObjectLayer_init_H),
+        reinterpret_cast<void**>(&CustomizeObjectLayer_init));
+
+    //MH_CreateHook(
+    //    reinterpret_cast<void*>(gd::base + 0x47df0),
+    //    reinterpret_cast<void**>(&EditorUI_selectObject_H),
+    //    reinterpret_cast<void**>(&EditorUI_selectObject));
+    //MH_CreateHook(
+    //    reinterpret_cast<void*>(gd::base + 0x47e80),
+    //    reinterpret_cast<void**>(&EditorUI_selectObjects_H),
+    //    reinterpret_cast<void**>(&EditorUI_selectObjects));
+    
 
     //MH_CreateHook(
     //    reinterpret_cast<void*>(gd::base + 0x3fc00),
@@ -1047,11 +1604,23 @@ DWORD WINAPI my_thread(void* hModule) {
         reinterpret_cast<void*>(gd::base + 0x3b320),
         EditLevelLayer::EditLevelLayer_init_H,
         reinterpret_cast<void**>(&EditLevelLayer::EditLevelLayer_init));
+    //base + 0x9e2b0
+    
 
     MH_CreateHook(
+        reinterpret_cast<void*>(gd::base + 0x835f0),
+        InfoLayer::InfoLayer_init_hook,
+        reinterpret_cast<void**>(&InfoLayer::InfoLayer_init));
+    MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x9b160),
-        GJGameLevel::GJGameLevel_init_hook,
-        reinterpret_cast<void**>(&GJGameLevel::GJGameLevel_init));
+        LevelInfoLayer::LevelInfoLayer_init_hook,
+        reinterpret_cast<void**>(&LevelInfoLayer::LevelInfoLayer_init));
+
+    //MH_CreateHook(
+    //    reinterpret_cast<void*>(gd::base + 0x9e2b0),
+    //    LevelInfoLayer::LevelInfoLayer_onLevelInfo_hook,
+    //    reinterpret_cast<void**>(&LevelInfoLayer::LevelInfoLayer_onLevelInfo));
+    
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x4ff10),
         reinterpret_cast<void**>(&EndLayer_init_H),

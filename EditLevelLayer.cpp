@@ -1,3 +1,4 @@
+#pragma once
 #include "pch.h"
 #include "state.h"
 #include "EditLevelLayer.h"
