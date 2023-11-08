@@ -89,7 +89,6 @@ namespace gd {
 #include "layers_scenes_transitions_nodes/CCBlockLayer.h"
 #include "layers_scenes_transitions_nodes/PauseLayer.h"
 #include "layers_scenes_transitions_nodes/GJBaseGameLayer.h"
-#include "layers_scenes_transitions_nodes/PlayLayer.h"
 #include "layers_scenes_transitions_nodes/LevelEditorLayer.h"
 #include "layers_scenes_transitions_nodes/EditorUI.h"
 #include "layers_scenes_transitions_nodes/NumberInputLayer.h"
@@ -98,6 +97,7 @@ namespace gd {
 
 #include "layers_scenes_transitions_nodes/EditLevelLayer.h"
 #include "layers_scenes_transitions_nodes/LevelBrowserLayer.h"
+#include "layers_scenes_transitions_nodes/CreatorLayer.h"
 
 #include "scroll_nodes/CCContentLayer.h"
 #include "scroll_nodes/CCIndexPath.h"
@@ -125,13 +125,16 @@ namespace gd {
 
 #include "audio_nodes/FMODAudioEngine.h"
 
-
 #include "level_nodes/GJGameLevel.h"
 #include "level_nodes/LevelSettingsObject.h"
 
 #include "sprite_nodes/CCSpritePlus.h"
 #include "sprite_nodes/ButtonSprite.h"
+
 #include "sprite_nodes/GameObject.h"
+#include "other_nodes/StartPosObject.h"
+#include "layers_scenes_transitions_nodes/PlayLayer.h"
+
 #include "sprite_nodes/CCAnimatedSprite.h"
 #include "sprite_nodes/AnimatedShopKeeper.h"
 #include "sprite_nodes/PlayerObject.h"

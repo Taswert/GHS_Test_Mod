@@ -10,7 +10,8 @@ namespace EditorPauseLayer
 	{
 	public:
 		void EEToggler(CCObject*);
-		void TestButton(CCObject*);
+		void VanillaSelectAllButton(CCObject*);
+		void SelectAbsolutelyAllButton(CCObject*);
 		void PCToggler(CCObject*);
 		void HideGridToggler(CCObject*);
 		void HideTLinesToggler(CCObject*);
