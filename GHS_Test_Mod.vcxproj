@@ -111,7 +111,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)cappuccino-sdk\incl\cocos2dx;$(SolutionDir)cappuccino-sdk\incl\cocos2dx\include;$(SolutionDir)cappuccino-sdk\incl\cocos2dx\kazmath\include;$(SolutionDir)cappuccino-sdk\incl\cocos2dx\platform\win32;$(SolutionDir)cappuccino-sdk\incl\cocos2dx\platform\third_party\win32;$(SolutionDir)cappuccino-sdk\incl\cocos2dx\platform\third_party\win32\OGLES;$(SolutionDir)cappuccino-sdk\incl\extensions;$(SolutionDir)libs\MinHook;$(SolutionDir)libs\gd.h;$(SolutionDir)libs\gd.h\include;$(SolutionDir)libs\mat-dash;$(SolutionDir)libs\mat-dash\include;$(SolutionDir)libs\imgui-hook;$(SolutionDir)libs\imgui-hook\imgui;$(SolutionDir)libs\imgui-hook\imgui\backends;$(SolutionDir)libs\nfd\src;$(SolutionDir)libs\nfd\src\include;$(SolutionDir)libs\httprequest;C:\Users\Romah\Desktop\curl-8.4.0\x86 Release\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -540,18 +540,11 @@
     <ClInclude Include="cappuccino-sdk\incl\extensions\spine\SlotData.h" />
     <ClInclude Include="cappuccino-sdk\incl\extensions\spine\spine-cocos2dx.h" />
     <ClInclude Include="cappuccino-sdk\incl\extensions\spine\spine.h" />
-    <ClInclude Include="CreatorLayer.h" />
     <ClInclude Include="EditLevelLayer.h" />
     <ClInclude Include="EditorPauseLayer.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="HitboxNode.h" />
-    <ClInclude Include="libs\gd.h\layers_scenes_transitions_nodes\CreatorLayer.h" />
-    <ClInclude Include="libs\gd.h\layers_scenes_transitions_nodes\LevelBrowserLayer.h" />
-    <ClInclude Include="libs\gd.h\other_nodes\StartPosObject.h" />
-    <ClInclude Include="ObjectsIds.h" />
-    <ClInclude Include="InfoLayer-gdh.h" />
-    <ClInclude Include="InfoLayer.h" />
-    <ClInclude Include="LevelInfoLayer.h" />
+    <ClInclude Include="GJGameLevel.h" />
+    <ClInclude Include="LevelBrowserLayer.h" />
     <ClInclude Include="libs\gd.h\achievement_nodes\AchievementBar.h" />
     <ClInclude Include="libs\gd.h\achievement_nodes\AchievementNotifier.h" />
     <ClInclude Include="libs\gd.h\actions\CCCircleWave.h" />
@@ -649,13 +642,10 @@
     <ClInclude Include="utils.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CreatorLayer.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="EditLevelLayer.cpp" />
     <ClCompile Include="EditorPauseLayer.cpp" />
-    <ClCompile Include="HitboxNode.cpp" />
-    <ClCompile Include="InfoLayer.cpp" />
-    <ClCompile Include="LevelInfoLayer.cpp" />
+    <ClCompile Include="GJGameLevel.cpp" />
     <ClCompile Include="libs\imgui-hook\imgui-hook.cpp" />
     <ClCompile Include="libs\imgui-hook\imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="libs\imgui-hook\imgui\backends\imgui_impl_win32.cpp" />

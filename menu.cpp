@@ -747,22 +747,6 @@ void RenderMain() {
         {
             WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x49e1ed), "\x74\x0e", 2, NULL);
         }
-        if (setting().onConfirmExit)
-        {
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6540), "\x90\x90\x90\x90\x90", 5, NULL); //Deleting exit sequence from onQuit button
-
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d654d), "\x90\x90", 2, NULL); //Deleting quitSound effect from original exit sequence
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d655d), "\x90\x90\x90\x90\x90", 5, NULL);
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6565), "\x90\x90\x90\x90\x90", 5, NULL);
-        }
-        else
-        {
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6540), "\xE8\x9B\xBA\x01\x00", 5, NULL); //Restoring exit sequence from onQuit button
-
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d654d), "\x6A\x10", 2, NULL); //Restoring quitSound effect from original exit sequence
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d655d), "\x68\x5C\x22\x51\x00", 5, NULL);
-            WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6565), "\xE8\x86\xF1\xF2\xFF", 5, NULL);
-        }
 
         //Fps(setting().fpslol);
         auto* colors = ImGui::GetStyle().Colors;
@@ -1134,37 +1118,6 @@ void RenderMain() {
                     WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x49e1ed), "\x74\x0e", 2, NULL);
                 }
             }
-            if (ImGui::Checkbox("Confirm exit", &setting().onConfirmExit))
-            {
-                if (setting().onConfirmExit)
-                {
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6540), "\x90\x90\x90\x90\x90", 5, NULL); //Deleting exit sequence from onQuit button
-
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d654d), "\x90\x90", 2, NULL); //Deleting quitSound effect from original exit sequence
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d655d), "\x90\x90\x90\x90\x90", 5, NULL);
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6565), "\x90\x90\x90\x90\x90", 5, NULL);
-                }
-                else
-                {
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6540), "\xE8\x9B\xBA\x01\x00", 5, NULL); //Restoring exit sequence from onQuit button
-
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d654d), "\x6A\x10", 2, NULL); //Restoring quitSound effect from original exit sequence
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d655d), "\x68\x5C\x22\x51\x00", 5, NULL);
-                    WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4d6565), "\xE8\x86\xF1\xF2\xFF", 5, NULL);
-                }
-            }
-            if (ImGui::Checkbox("Hide Pause Menu", &setting().onHidePause))
-            {
-                if (layers().PauseLayerObject)
-                {
-                    if (setting().onHidePause) layers().PauseLayerObject->setVisible(0);
-                    else layers().PauseLayerObject->setVisible(1);
-                }
-            }
-            ImGui::Checkbox("Show Player Hitbox", &setting().onPlayerHitbox);
-            ImGui::Checkbox("Show Object Hitbox", &setting().onObjHitbox);
-            ImGui::Checkbox("Hitboxes on Death", &setting().onHitboxesOnDeath);
-            ImGui::Checkbox("Start Pos Switcher", &setting().onStartPosSwitcher);
         }
 
 
@@ -1669,7 +1622,6 @@ void RenderMain() {
                 }
             }
             ImGui::Checkbox("Persistent Clipboard", &setting().onPersistentClipboard);
-            ImGui::Checkbox("Selected Object Info", &setting().onSelectedObjectLabel);
 
             /*if (ImGui::Checkbox("No Death X", &setting().onNoDeathX))
             {
@@ -1869,7 +1821,6 @@ void RenderMain() {
             ImGui::Checkbox("Show FPS", &setting().onFPSShow);
             ImGui::Checkbox("Attempts", &setting().onAttemptsLabel);
             ImGui::Checkbox("Jumps", &setting().onJumpsLabel);
-            ImGui::Checkbox("isColliding", &setting().onCollidingLabel);
 
             ImGui::SetNextItemWidth(150 * setting().UISize);
             ImGui::InputText("##message", setting().message, IM_ARRAYSIZE(setting().message));
@@ -1998,17 +1949,14 @@ void RenderMain() {
             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize))
         {
             ImGui::SetWindowFontScale(setting().UISize);
-            ImGui::Text("Historical Hack V4.5");
+            ImGui::Text("Historical Hack V4.4");
             ImGui::Text("Made by Taswert!");
             ImGui::Text("Thanks to Rainix for GUI and other help!");
             ImGui::Text("Special thanks to mgostiH, Mat, Pololak,");
-            ImGui::Text("HJfod, Absolute and GD Programming server!");
+            ImGui::Text("HJfod and Absolute!");
             //ImGui::Text("Testers: Herowhither, Virex, Verbole");
             //ImGui::Text("HHV4.0 'Tester Edition'. Thank you for your help!");
-            // 
-            //Rainix Pololak - Some help with code and addresses. Huge impact.
-            //Mat Absolute - I took some addresses and other stuff from their projects lol. Especially from Mat's projects.
-            //mgostiH HJfod maki zmx iAndy_hd3 - Guys who responded to me, when I needed some help.
+
             ImGui::EndTabItem();
         }
 

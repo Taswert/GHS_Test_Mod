@@ -18,51 +18,6 @@ namespace gd {
 		void resume() {
 			return reinterpret_cast<void(__thiscall*)(PlayLayer*)>(base + 0xf1e10)(this);
 		}
-		void onQuit() {
-			return reinterpret_cast<void(__thiscall*)(PlayLayer*)>(base + 0xf1fe0)(this);
-		}
-
-		auto layer() {
-			return from<cocos2d::CCLayer*>(this, 0x2D4);
-		}
-
-		auto getFirstVisibleSection() {
-			return from<int>(this, 0x1BC);
-		}
-		auto getLastVisibleSection() {
-			return from<int>(this, 0x1C0);
-		}
-
-		auto getSections() {
-			return from<cocos2d::CCArray*>(this, 0x170);
-		}
-
-		auto getObjects() {
-			return from<cocos2d::CCArray*>(this, 0x184);
-		}
-
-		auto getLevelSettings() {
-			return from <gd::LevelSettingsObject*>(this, 0x14C);
-		}
-
-		auto getStartPosObject() {
-			return from <gd::StartPosObject*>(this, 0x148);
-		}
-		void setStartPosObject(gd::StartPosObject* startPos) {
-			from <gd::StartPosObject*>(this, 0x148) = startPos;
-		}
-
-		auto getPlayerStartPosition() {
-			return from<cocos2d::CCPoint>(this, 0x2E0);
-		}
-		void setPlayerStartPosition(cocos2d::CCPoint playerStartPosition) {
-			from<cocos2d::CCPoint>(this, 0x2E0) = playerStartPosition;
-		}
-
-
-		/*auto getScene() {
-			return from<cocos2d::CCScene*>(this, 0xa8);
-		}*/
 		// TODO: make these actual members
 		auto player1() {
 			return from<PlayerObject*>(this, 0x2a4); //2a4

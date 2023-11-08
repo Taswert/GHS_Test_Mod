@@ -29,11 +29,6 @@ namespace gd {
 
 	public:
 		CCNode vtable;
-		auto getMenu()
-		{
-			return m_pButtonMenu;
-		}
-
 		auto getLayer()
 		{
 			return from<cocos2d::CCLayer*>(this, 0x1AC);
@@ -95,7 +90,6 @@ namespace gd {
 			//base + 0x23560 GD 2.13
 			//base + 0x15ff0 GHS 1.91
 		}
-
 		FLAlertLayer() {
 			reinterpret_cast<void(__thiscall*)(FLAlertLayer*)>(
 				base + 0x150d0 //0x224B0 2.1

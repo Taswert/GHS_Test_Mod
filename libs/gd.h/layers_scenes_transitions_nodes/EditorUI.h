@@ -43,29 +43,6 @@ public:
         return reinterpret_cast<void(__thiscall*)(EditorUI*, cocos2d::CCArray*)>(base + 0x47e80)(this, arr); //0xf1f20 - GHS 1.92
     }
 
-    void selectObject(gd::GameObject* obj) {
-        return reinterpret_cast<void(__thiscall*)(EditorUI*, gd::GameObject*)>(base + 0x47df0)(this, obj);
-    }
-
-    cocos2d::CCArray* getSomeObjects() {
-        return from<cocos2d::CCArray*>(this, 0x1E8);
-    }
-
-    cocos2d::CCArray* getSelectedObjectsOfCCArray() {
-        auto output = cocos2d::CCArray::create();
-        gd::GameObject* single = from<gd::GameObject*>(this, 0x258);
-        if (single)
-        {
-            output->addObject(reinterpret_cast<cocos2d::CCObject*>(single));
-            return output;
-        }
-        return from<cocos2d::CCArray*>(this, 0x18c);
-    }
-
-    cocos2d::CCArray* getAllObjects() {
-        return from<cocos2d::CCArray*>(this, 0x224); //no
-    }
-
     std::vector<GameObject*> getSelectedObjects() {
         const auto single = from<GameObject*>(this, 0x258);
         if (single) return { single };
@@ -76,11 +53,6 @@ public:
             output.push_back(reinterpret_cast<GameObject*>(selectedArr->objectAtIndex(i)));
         return output;
     }
-
-    gd::GameObject* getSingleSelectedObj() {
-        return from<gd::GameObject*>(this, 0x258);
-    }
-    
 };
 /*
 class EditorUI : public cocos2d::CCLayer,

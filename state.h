@@ -1,10 +1,4 @@
 #pragma once
-#include <cocos2d.h>
-
-struct LayersStruct {
-    cocos2d::CCLayer* PauseLayerObject;
-};
-
 
 struct SettingStruct {
     int trailStateId = 0;
@@ -88,14 +82,6 @@ struct SettingStruct {
     bool onSolidTrail = false;
     bool onAutoSave = false;
     bool onBetterLevelUpdate = false;
-    bool onCollidingLabel = false;
-    bool onSelectedObjectLabel = false;
-    bool onConfirmExit = false;
-    bool onHidePause = false;
-    bool onObjHitbox = false;
-    bool onPlayerHitbox = false;
-    bool onHitboxesOnDeath = false;
-    bool onStartPosSwitcher = false;
 
     bool onDebugLabels = false;
 
@@ -129,9 +115,8 @@ struct SettingStruct {
     char message[30] = "Your Text";
 
 
-    int roleType = 0;
+    bool isAdmin = false;
 };
     
 
 SettingStruct& setting();
-LayersStruct& layers();

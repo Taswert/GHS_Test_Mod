@@ -27,7 +27,6 @@
 #include <GUI/CCControlExtension/CCScale9Sprite.h>
 #include <spine/extension.h>
 #include <curl/curl.h>
-#include <GUI/CCControlExtension/CCControlUtils.h>
 //#include "HTTPrequest.hpp"
 
 using namespace cocos2d;

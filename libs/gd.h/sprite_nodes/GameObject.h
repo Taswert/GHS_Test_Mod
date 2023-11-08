@@ -49,8 +49,6 @@ namespace gd {
 		kGameObjectTypeSpecial = 40,
 	};
 
-
-
 	enum GJCustomColorMode {};
 
 	class GJSpriteColor;
@@ -153,60 +151,60 @@ namespace gd {
 		//CCNode vtable
 		virtual void setScaleX(float scale) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, float)>(
-				base + 0x72070
+				base + 0xE5050
 				)(this, scale);
 		}
 		virtual void setScaleY(float scale) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, float)>(
-				base + 0x720d0
+				base + 0xE50E0
 				)(this, scale);
 		}
 		virtual void setScale(float scale) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, float)>(
-				base + 0x72130
+				base + 0xE5170
 				)(this, scale);
 		}
 		virtual void setPosition(const cocos2d::CCPoint& pos) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, const cocos2d::CCPoint&)>(
-				base + 0x71e60
+				base + 0xE4DE0
 				)(this, pos);
 		}
 		virtual void setVisible(bool visible) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, bool)>(
-				base + 0x72610
+				base + 0xE57C0
 				)(this, visible);
 		}
 		virtual void setRotation(float rotation) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, float)>(
-				base + 0x71f50
+				base + 0xE4ED0
 				)(this, rotation);
 		}
 		virtual bool initWithTexture(cocos2d::CCTexture2D* texture) {
 			return reinterpret_cast<bool(__thiscall*)(GameObject*, cocos2d::CCTexture2D*)>(
 				base + 0xCFA80
-				)(this, texture); //not correct
+				)(this, texture);
 		}
 		virtual void setChildColor(const cocos2d::ccColor3B& color) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, const cocos2d::ccColor3B&)>(
 				base + 0xEE900
-				)(this, color); //not correct
+				)(this, color);
 		}
 
 		//CCRGBAProtocol vtable
 		virtual void setOpacity(GLubyte opacity) {
 			return reinterpret_cast<void(__thiscall*)(GameObject*, GLubyte)>(
-				base + 0x72350
+				base + 0xE53C0
 				)(this, opacity);
 		}
 
 		static GameObject* createWithFrame(const char* frame) {
 			return reinterpret_cast<GameObject* (__fastcall*)(const char*)>(
-				base + 0xCF8F0 //not correct
+				base + 0xCF8F0
 				)(frame);
 		}
 		static GameObject* objectFromString(std::string str, bool unknown) {
 			auto pRet = reinterpret_cast<GameObject* (__fastcall*)(std::string, bool)>(
-				base + 0xEBE50 //not correct
+				base + 0xEBE50
 				)(str, unknown);
 			__asm add esp, 0x18
 			return pRet;
@@ -216,7 +214,7 @@ namespace gd {
 			this->m_bIsSelected = false;
 
 			return reinterpret_cast<void(__fastcall*)(GameObject*)>(
-				base + 0xeee50 //maybe it is lol
+				base + 0xeee50
 			)(this);
 		}
 
@@ -241,70 +239,6 @@ namespace gd {
 				this, id
 			);
 		}
-
-		auto getColorMode() {
-			auto active = from<int>(this, 0x308);
-			auto default_color = from<int>(this, 0x30c);
-			// TODO: gd checks some boolean
-			if (active == 0)
-				active = default_color;
-			return active;
-		}
-
-		bool isOnValidGroup() {
-			if (from<int>(this, 0x160) == 842150450) return 0;
-			else return 1;
-		}
-
-		int getGroup()
-		{
-			return from<int>(this, 0x324);
-		}
-
-		int getType() {
-			return from<int>(this, 0x249);
-			//return reinterpret_cast<int(__fastcall*)(GameObject*)>(base + 0x52240)(this);
-		}
-		void setType(int newType) {
-			from<int>(this, 0x249) = newType;
-		}
-
-		float getObjectRadius() {
-			return from<float>(this, 0x254);
-		}
-
-		bool getIsFlippedY() {
-			return from<bool>(this, 0x1C4);
-		}
-		bool getIsFlippedX() {
-			return from<bool>(this, 0x1C5);
-		}
-
-		bool getUseAudioScale() {
-			return from<bool>(this, 0x295);
-		}
-
-		void updateOrientedBox() {
-			return reinterpret_cast<void (__thiscall*)(GameObject*)>(base + 0x75300)(this);
-		}
-
-		gd::OBB2D* getOrientedBox() {
-			return reinterpret_cast<gd::OBB2D*(__thiscall*)(GameObject*)>(base + 0x75290)(this);
-		}
-
-		int getObjectID() {
-			return from<int>(this, 0x2c4);
-		}
-
-
-		virtual cocos2d::CCRect* const& getObjectRect(cocos2d::CCRect* rect) {
-			return reinterpret_cast<cocos2d::CCRect* (__thiscall*)(GameObject*, cocos2d::CCRect*)>(base + 0x71b90)(this, rect);
-		}
-
-		cocos2d::CCRect* getObjectRect(cocos2d::CCRect* rect, float fl1, float fl2) {
-			return reinterpret_cast<cocos2d::CCRect * (__thiscall*)(GameObject*, cocos2d::CCRect*, float, float)>(base + 0x71bd0)(this, rect, fl1, fl2);
-		}
-		//
 
 		unsigned int getUniqueID() { return m_nUniqueID; }
 		short getGroupID(int ix) { return m_pGroups[ix]; }

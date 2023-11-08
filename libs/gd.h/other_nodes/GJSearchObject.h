@@ -110,10 +110,6 @@ public:
         return reinterpret_cast<GJSearchObject * (__fastcall*)(SearchType)>(base + 0x64a40)(type); //0x650d0 - GD 1.92
         // return create(type, "", "-", "-", 0, false, false, false, 0, false, false, false, false, false);
     }
-    static auto create(int type) {
-        return reinterpret_cast<GJSearchObject * (__fastcall*)(int)>(base + 0x64a40)(type); //0x650d0 - GD 1.92
-        // return create(type, "", "-", "-", 0, false, false, false, 0, false, false, false, false, false);
-    }
 
     SearchType m_type;
     gd::string m_string;

@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "LevelInfoLayer.h"
+#include "GJGameLevel.h"
 //#include "MyRateLayer.h"
 #include "state.h"
 #include <fstream>
@@ -18,19 +18,18 @@ gd::GameLevelManager* lvlmngr;
 CCArray* savedlvls;
 CCLayer* gjlayer;
 CCLayer* rateLayer;
-CCLayer* infoFlalert;
 
 CURL* curl;
 CURLcode res;
 std::string readBuffer;
 
-//class LevelInfoLayer : CCLayer
-//{
-//public:
-//	void onLevelUpdate(CCObject* btn) {
-//		return reinterpret_cast<void(__fastcall*)(CCObject*)>(gd::base + 0x9e1e0)(btn);
-//	}
-//};
+class LevelInfoLayer : CCLayer
+{
+public:
+	void onLevelUpdate(CCObject* btn) {
+		return reinterpret_cast<void(__fastcall*)(CCObject*)>(gd::base + 0x9e1e0)(btn);
+	}
+};
 
 size_t curlWriteCallback(char* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -70,7 +69,6 @@ protected:
 			curl_global_cleanup();
 			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Unrated!", "Level is succesfully <cr>unrated</c>!", "Ok", nullptr, 240.f, false, 0)->show();
 			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Unrate failure.", "You have no permissions to unrate levels.", "Ok", nullptr, 260.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Unrate failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
 			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
 			std::cout << "UNRATE PROTOCOL" << std::endl;
 			std::cout << readBuffer << std::endl;
@@ -118,8 +116,7 @@ protected:
 			std::cout << readBuffer << std::endl;
 			std::cout << levelid << std::endl << std::endl;
 			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Deleted.", "<cc>Level is permanently deleted.</c>", "Ok", nullptr, 240.f, false, 0)->show();
-			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Deletion failure.", "You have no permissions to delete levels.", "Ok", nullptr, 260.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Deletion failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
+			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Deletion failed.", "You have no permissions to delete levels.", "Ok", nullptr, 260.f, false, 0)->show();
 			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
 			readBuffer.clear();
 		}
@@ -163,7 +160,6 @@ protected:
 			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Blocked!", "Level is now <cr>blocked</c>!", "Ok", nullptr, 240.f, false, 0)->show();
 			else if (readBuffer == "2") gd::FLAlertLayer::create(nullptr, "Unblocked!", "Level is now <cg>unblocked</c>!", "Ok", nullptr, 240.f, false, 0)->show();
 			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Block failure.", "You have no permissions to block levels.", "Ok", nullptr, 260.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Rate failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
 			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
 			readBuffer.clear();
 		}
@@ -208,7 +204,6 @@ protected:
 			std::cout << globalSelectedDiff << " - diff" << std::endl;
 			if (readBuffer == "1" ) gd::FLAlertLayer::create(nullptr, "Rated!", "Level is <cy>star rated</c>!", "Ok", nullptr, 240.f, false, 0)->show();
 			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Rate failure.", "You have no permissions to rate levels.", "Ok", nullptr, 260.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Rate failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
 			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
 			std::cout << "STRING - " << postfield << std::endl << std::endl;
 			readBuffer.clear();
@@ -259,7 +254,6 @@ protected:
 			std::cout << globalSelectedDiff << " - diff" << std::endl;
 			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Featured!", "Level is <cp>featured</c>!", "Ok", nullptr, 240.f, false, 0)->show();
 			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Rate failure.", "You have no permissions to rate levels.", "Ok", nullptr, 260.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Rate failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
 			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
 			std::cout << "STRING - " << postfield << std::endl << std::endl;
 			readBuffer.clear();
@@ -270,103 +264,11 @@ protected:
 	}
 };
 
-class AddToHofAlertProtocol : public gd::FLAlertLayerProtocol {
-protected:
-
-	void FLAlert_Clicked(gd::FLAlertLayer* layer, bool btn2) override
-	{
-		if (btn2)
-		{
-			auto gameManager = gd::GameManager::sharedState();
-			std::string udid = gameManager->getPlayerUDID();
-			int levelid = level->m_levelID;
-
-			std::string postfield = "deviceId=" + udid + "&levelID=" + std::to_string(levelid) + "&value=1";
-
-			curl_global_init(CURL_GLOBAL_ALL);
-			curl = curl_easy_init();
-			if (curl) {
-				curl_easy_setopt(curl, CURLOPT_URL, "http://85.209.2.73:25568/AdminPanel/SetHallOfFame");
-				curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfield);
-				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
-				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				/* Perform the request, res will get the return code */
-				res = curl_easy_perform(curl);
-				/* Check for errors */
-				if (res != CURLE_OK)
-					fprintf(stderr, "curl_easy_perform() failed: %s\n",
-						curl_easy_strerror(res));
-				/* always cleanup */
-				curl_easy_cleanup(curl);
-			}
-			curl_global_cleanup();
-			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Done!", "Level is succesfully <cg>added</c> \nto <cy>Hall of Fame</c>!", "Ok", nullptr, 270.f, false, 0)->show();
-			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Adding failure.", "You have no permissions to add levels \nto <cy>Hall of Fame</c>.", "Ok", nullptr, 290.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Adding failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
-			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
-			std::cout << "ADD TO HOF PROTOCOL" << std::endl;
-			std::cout << readBuffer << std::endl;
-			std::cout << "STRING - " << postfield << std::endl;
-			std::cout << levelid << std::endl << std::endl;
-			readBuffer.clear();
-			//lvlmngr->levelUpdate(level);
-			//gd::GameLevelManager::sharedState()->levelUpdate(level);
-		}
-	}
-};
-
-class RemoveFromHofAlertProtocol : public gd::FLAlertLayerProtocol {
-protected:
-
-	void FLAlert_Clicked(gd::FLAlertLayer* layer, bool btn2) override
-	{
-		if (btn2)
-		{
-			auto gameManager = gd::GameManager::sharedState();
-			std::string udid = gameManager->getPlayerUDID();
-			int levelid = level->m_levelID;
-
-			std::string postfield = "deviceId=" + udid + "&levelID=" + std::to_string(levelid) + "&value=0";
-
-			curl_global_init(CURL_GLOBAL_ALL);
-			curl = curl_easy_init();
-			if (curl) {
-				curl_easy_setopt(curl, CURLOPT_URL, "http://85.209.2.73:25568/AdminPanel/SetHallOfFame");
-				curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfield);
-				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteCallback);
-				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				/* Perform the request, res will get the return code */
-				res = curl_easy_perform(curl);
-				/* Check for errors */
-				if (res != CURLE_OK)
-					fprintf(stderr, "curl_easy_perform() failed: %s\n",
-						curl_easy_strerror(res));
-				/* always cleanup */
-				curl_easy_cleanup(curl);
-			}
-			curl_global_cleanup();
-			if (readBuffer == "1") gd::FLAlertLayer::create(nullptr, "Done!", "Level is succesfully <cr>removed</c> \nfrom <cy>Hall of Fame</c>!", "Ok", nullptr, 270.f, false, 0)->show();
-			else if (readBuffer == "-1")  gd::FLAlertLayer::create(nullptr, "Removing failure.", "You have no permissions to remove levels \nfrom <cy>Hall of Fame</c>.", "Ok", nullptr, 300.f, false, 0)->show();
-			else if (readBuffer == "-2") gd::FLAlertLayer::create(nullptr, "Removing failure.", "Level does not exist on servers.", "Ok", nullptr, 260.f, false, 0)->show();
-			else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
-			std::cout << "REMOVE FROM HOF PROTOCOL" << std::endl;
-			std::cout << readBuffer << std::endl;
-			std::cout << "STRING - " << postfield << std::endl;
-			std::cout << levelid << std::endl << std::endl;
-			readBuffer.clear();
-			//lvlmngr->levelUpdate(level);
-			//gd::GameLevelManager::sharedState()->levelUpdate(level);
-		}
-	}
-};
-
 UnrateAlertProtocol unrateProtocol;
 DeleteAlertProtocol deleteProtocol;
 BlockAlertProtocol blockProtocol;
 StarRateAlertProtocol starProtocol;
 FeaturedAlertProtocol featureProtocol;
-AddToHofAlertProtocol addToHofProtocol;
-RemoveFromHofAlertProtocol removeFromHofProtocol;
 
 class MyAwesomeRateLayer : public CCLayer
 {
@@ -388,7 +290,7 @@ private:
 
 	void blockButtonCallback(CCObject*)
 	{
-		const auto flalert = gd::FLAlertLayer::create(&blockProtocol, "Level Block", "Do you want to <cr>block</c>/<cg>unblock</c> this level on <cy>server</c>?\nYou can unblock this level later.", "No", "Yes", 300.f, false, 0);
+		const auto flalert = gd::FLAlertLayer::create(&blockProtocol, "Level Block", "Do you want to <cr>block</c>/<cg>unblock</c> this level on <cy>server</c>?\nYou can unblock this level later.", "No", "Yes", 260.f, false, 0);
 		flalert->show();
 	}
 
@@ -609,21 +511,17 @@ public:
 		additionalMenu->setPosition((director->getScreenRight()) / 2 + 200, (director->getScreenTop()) / 2 + 60);
 		additionalMenu->setZOrder(3);
 
-		if (setting().roleType > 1)
-		{
-			auto deleteLevelSprite = CCSprite::createWithSpriteFrameName("edit_delBtn_001.png");
-			deleteLevelSprite->setScale(1.5f);
-			auto deleteLevelButton = gd::CCMenuItemSpriteExtra::create(deleteLevelSprite, nullptr, this, menu_selector(MyAwesomeRateLayer::deleteButtonCallback));
+		auto deleteLevelSprite = CCSprite::createWithSpriteFrameName("edit_delBtn_001.png");
+		deleteLevelSprite->setScale(1.5f);
+		auto deleteLevelButton = gd::CCMenuItemSpriteExtra::create(deleteLevelSprite, nullptr, this, menu_selector(MyAwesomeRateLayer::deleteButtonCallback));
 
-			auto blockLevelSprite = CCSprite::createWithSpriteFrameName("GJ_lock_001.png");
-			blockLevelSprite->setScale(1.5f);
-			auto blockLevelButton = gd::CCMenuItemSpriteExtra::create(blockLevelSprite, nullptr, this, menu_selector(MyAwesomeRateLayer::blockButtonCallback));
-			blockLevelButton->setPosition(0, -50);
+		auto blockLevelSprite = CCSprite::createWithSpriteFrameName("GJ_lock_001.png");
+		blockLevelSprite->setScale(1.5f);
+		auto blockLevelButton = gd::CCMenuItemSpriteExtra::create(blockLevelSprite, nullptr, this, menu_selector(MyAwesomeRateLayer::blockButtonCallback));
+		blockLevelButton->setPosition(0, -50);
 
-			additionalMenu->addChild(deleteLevelButton);
-			additionalMenu->addChild(blockLevelButton);
-		}
-		
+		additionalMenu->addChild(deleteLevelButton);
+		additionalMenu->addChild(blockLevelButton);
 
 		//submit and cancel buttons
 		auto bottomMenu = CCMenu::create();
@@ -690,46 +588,15 @@ public:
 	}
 };
 
-gd::FLAlertLayer* mif;
-gd::FLAlertLayer* oif;
-
-
-void LevelInfoLayer::Callback::arrowLeftButton(CCObject*)
+void GJGameLevel::Callback::passButton(CCObject*)
 {
-	std::string str1;
+	std::string str1 = "ayo";
 	CCString* str;
-
-	mif->removeMeAndCleanup();
-
-	std::string strLevelName = (level->m_levelName).c_str();
-	str1 = "<cy>" + strLevelName +
-		"</c>\n<cg>Total Attempts</c>: " + std::to_string(level->m_attempts) +
-		"\n<cb>Total Jumps</c>: " + std::to_string(level->m_jumps) +
-		"\n<cp>Normal</c>: " + std::to_string(level->m_normalPercent) +
-		"%\n<co>Practice</c>: " + std::to_string(level->m_practicePercent) + "%";
-	str = CCString::create(str1);
-	auto originalInfoFlalert = gd::FLAlertLayer::create(nullptr, "Level Stats", str->getCString(), "OK", nullptr, 300.f, false, 0);
-	originalInfoFlalert->setZOrder(457);
-	oif = originalInfoFlalert;
-	auto oifMenu = originalInfoFlalert->getMenu();
-	auto arrowRightSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	arrowRightSprite->setFlipX(true);
-	auto arrowRButton = gd::CCMenuItemSpriteExtra::create(arrowRightSprite, nullptr, originalInfoFlalert, menu_selector(LevelInfoLayer::Callback::arrowRightButton));
-	arrowRButton->setPosition(180, 80);
-	oifMenu->addChild(arrowRButton);
-	gjlayer->addChild(originalInfoFlalert);
-}
-
-void LevelInfoLayer::Callback::arrowRightButton(CCObject*)
-{
-	std::string str1;
-	CCString* str;
-
-	oif->removeMeAndCleanup();
-
 	pass = level->m_password % 1000000;
+
 	str1 = "<cr>Password: </c>";
 	pass == 0 ? str1.append("Copy not allowed!\n") : pass == 1 ? str1.append("Free Copy!\n") : str1.append(std::to_string(pass) + "\n");
+	
 	if (level->m_gameVersion <= 7) str1.append("<co>Game Version: </c>" + std::to_string((level->m_gameVersion + 9) / 10) + "." + std::to_string((level->m_gameVersion + 9) % 10));
 	else if (level->m_gameVersion == 10) str1.append("<co>Game Version: </c>1.7");
 	else str1.append("<co>Game Version: </c>" + std::to_string(level->m_gameVersion / 10) + "." + std::to_string(level->m_gameVersion % 10));
@@ -740,73 +607,33 @@ void LevelInfoLayer::Callback::arrowRightButton(CCObject*)
 	str1.append("\n <cd>You need to enter editor for objects count.</c>");
 
 	str = CCString::create(str1);
-	auto moreInfoFlalert = gd::FLAlertLayer::create(nullptr, "Level Stats", str->getCString(), "OK", nullptr, 320.f, false, 0);
-	moreInfoFlalert->setZOrder(457);
-	mif = moreInfoFlalert;
-	auto mifMenu = moreInfoFlalert->getMenu();
-	auto arrowLeftSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	auto arrowLButton = gd::CCMenuItemSpriteExtra::create(arrowLeftSprite, nullptr, moreInfoFlalert, menu_selector(LevelInfoLayer::Callback::arrowLeftButton));
-	arrowLButton->setPosition(-190, 80);
-	mifMenu->addChild(arrowLButton);
-	gjlayer->addChild(moreInfoFlalert);
-}
-
-void LevelInfoLayer::Callback::infoButton(CCObject*)
-{
-	std::string str1;
-	CCString* str;
-
-	std::string strLevelName = (level->m_levelName).c_str();
-	str1 = "<cy>" + strLevelName + 
-		"</c>\n<cg>Total Attempts</c>: " + std::to_string(level->m_attempts) + 
-		"\n<cl>Total Jumps</c>: " + std::to_string(level->m_jumps) + 
-		"\n<cp>Normal</c>: " + std::to_string(level->m_normalPercent) + 
-		"%\n<co>Practice</c>: " + std::to_string(level->m_practicePercent) + "%";
-	str = CCString::create(str1);
-	auto originalInfoFlalert = gd::FLAlertLayer::create(nullptr, "Level Stats", str->getCString(), "OK", nullptr, 300.f, false, 0);
-	originalInfoFlalert->setZOrder(457);
-	oif = originalInfoFlalert;
-	auto oifMenu = originalInfoFlalert->getMenu();
-	auto arrowRightSprite = CCSprite::createWithSpriteFrameName("GJ_arrow_03_001.png");
-	arrowRightSprite->setFlipX(true);
-	auto arrowRButton = gd::CCMenuItemSpriteExtra::create(arrowRightSprite, nullptr, originalInfoFlalert, menu_selector(LevelInfoLayer::Callback::arrowRightButton));
-	arrowRButton->setPosition(180, 80);
-	oifMenu->addChild(arrowRButton);
-	originalInfoFlalert->show();
-}
-
-void LevelInfoLayer::Callback::unrateButton(CCObject*)
-{
-	const auto flalert = gd::FLAlertLayer::create(&unrateProtocol, "Unrate level?", "Do you want to <cr>unrate</c> this level?", "No", "Yes", 300.f, false, 0);
+	const auto flalert = gd::FLAlertLayer::create(nullptr, "Better Info", str->getCString(), "OK", nullptr, 320.f, false, 0);
 	flalert->show();
 }
 
-void LevelInfoLayer::Callback::addToHofButton(CCObject*)
+void GJGameLevel::Callback::unrateButton(CCObject*)
 {
-	const auto flalert = gd::FLAlertLayer::create(&addToHofProtocol, "Add to HoF?", "Do you want to <cg>add</c> this level \nto <cy>Hall of Fame</c>?", "No", "Yes", 290.f, false, 0);
+	const auto flalert = gd::FLAlertLayer::create(&unrateProtocol, "Unrate level?", "Do you want to unrate this level?", "No", "Yes", 300.f, false, 0);
 	flalert->show();
 }
 
-void LevelInfoLayer::Callback::removeFromHofButton(CCObject*)
-{
-	const auto flalert = gd::FLAlertLayer::create(&removeFromHofProtocol, "Remove from HoF?", "Do you want to <cr>remove</c> this \nfrom <cy>Hall of Fame</c>?", "No", "Yes", 300.f, false, 0);
-	flalert->show();
-}
-
-bool __fastcall LevelInfoLayer::LevelInfoLayer_init_hook(cocos2d::CCLayer* self, void* edx, gd::GJGameLevel* gjlevel)
+bool __fastcall GJGameLevel::GJGameLevel_init_hook(cocos2d::CCLayer* self, void* edx, gd::GJGameLevel* gjlevel)
 {
 	level = gjlevel;
 	gjlayer = self;
 
-	//gjlevel->m_requiredCoins = 50; //lol what
-	bool result = LevelInfoLayer::LevelInfoLayer_init(self, gjlevel);
+	//gjlevel->m_requiredCoins = 50; lol what
+	bool result = GJGameLevel::GJGameLevel_init(self, gjlevel);
 	auto scrnright = CCDirector::sharedDirector()->getScreenRight();
 	auto menu = CCMenu::create();
 	auto passInfoSprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
-	auto passButton = gd::CCMenuItemSpriteExtra::create(passInfoSprite, nullptr, self, menu_selector(LevelInfoLayer::Callback::infoButton));
-	menu->setPosition({ 30, 30 });
+	auto passButton = gd::CCMenuItemSpriteExtra::create(passInfoSprite, nullptr, self, menu_selector(GJGameLevel::Callback::passButton));
+	menu->setPosition({ 30, 60 });
 	menu->addChild(passButton);
-	menu->setZOrder(5);
+	auto passLabel = CCLabelBMFont::create("More info", "bigFont.fnt");
+	passLabel->setScale(0.5f);
+	passLabel->setPosition({ 55 , 1 });
+	menu->addChild(passLabel);
 
 	lvlmngr = gd::GameLevelManager::sharedState();
 	savedlvls = lvlmngr->getSavedLevels();
@@ -888,47 +715,17 @@ bool __fastcall LevelInfoLayer::LevelInfoLayer_init_hook(cocos2d::CCLayer* self,
 		unrateSprite->initWithSpriteFrameName("GJ_rateDiffBtn_001.png");
 		unrateSprite->setColor({ 255, 255, 0 });
 	}
-	auto unrateButton = gd::CCMenuItemSpriteExtra::create(unrateSprite, nullptr, self, menu_selector(LevelInfoLayer::Callback::unrateButton));
-
-	auto addToHofSprite = CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png");
-	if (!addToHofSprite->initWithFile("GJ_addToHofBtn_001.png"))
-	{
-		addToHofSprite->initWithSpriteFrameName("GJ_likeBtn_001.png");
-		addToHofSprite->setColor({ 255, 255, 0 });
-	}
-	auto addToHofButton = gd::CCMenuItemSpriteExtra::create(addToHofSprite, nullptr, self, menu_selector(LevelInfoLayer::Callback::addToHofButton));
-
-	auto removeFromHofSprite = CCSprite::createWithSpriteFrameName("GJ_dislikeBtn_001.png");
-	if (!removeFromHofSprite->initWithFile("GJ_removeFromHofBtn_001.png"))
-	{
-		removeFromHofSprite->initWithSpriteFrameName("GJ_dislikeBtn_001.png");
-		removeFromHofSprite->setColor({ 255, 255, 0 });
-	}
-	auto removeFromHofButton = gd::CCMenuItemSpriteExtra::create(removeFromHofSprite, nullptr, self, menu_selector(LevelInfoLayer::Callback::removeFromHofButton));
+	auto unrateButton = gd::CCMenuItemSpriteExtra::create(unrateSprite, nullptr, self, menu_selector(GJGameLevel::Callback::unrateButton));
 	auto menu2 = CCMenu::create();
 	menu2->setPosition({ 30, 235 });
-
-	
-
-	if (setting().roleType > 0) {
-		menu2->addChild(rateButton);
-		menu2->addChild(unrateButton);
-	}
-	if (setting().roleType > 2) {
-		menu2->addChild(addToHofButton);
-		menu2->addChild(removeFromHofButton);
-	}
+	if (setting().isAdmin) menu2->addChild(rateButton);
+	if (setting().isAdmin /*&& (gjlevel->m_featured || gjlevel->m_stars)*/) menu2->addChild(unrateButton);
 	rateButton->setUserObject(self);
+	//unrateButton->setColor({ 255, 255, 0 });
 	unrateButton->setPosition(45, -25);
-	addToHofButton->setPosition(45, -75);
-	if (gd::GameManager::sharedState()->getUserID() == gjlevel->getUserID())
-		removeFromHofButton->setPosition(45, -125);
-	else if (gjlevel->getPassword() > 0 || setting().onCopyHack) 
-		removeFromHofButton->setPosition(0, -100);
-	else
-		removeFromHofButton->setPosition(0, -50);
 
 	self->addChild(menu2);
 	self->addChild(menu);
+
 	return result;
 }
