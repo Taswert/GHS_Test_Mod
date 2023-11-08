@@ -55,6 +55,9 @@ namespace gd {
 				base + 0x24240
 				)(this, filename);
 		}
+		float getCurrentVolume() {
+			return from<float>(this, 0x104);
+		}
 		//my own function
 		void reloadEffects() {
 			using namespace std::filesystem;

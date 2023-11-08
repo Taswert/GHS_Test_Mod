@@ -13,8 +13,13 @@ namespace gd
 		}
 
 		static auto create(GJSearchObject* obj) {
-			return reinterpret_cast<LevelBrowserLayer * (__fastcall*)(GJSearchObject*)>(base + 0x88a60)(obj); //0x894f0 GD 1.92
+			return reinterpret_cast<LevelBrowserLayer * (__fastcall*)(gd::GJSearchObject*)>(base + 0x88a60)(obj); //0x894f0 GD 1.92
 		}
+
+		void loadPage(GJSearchObject* search) {
+			return reinterpret_cast<void(__thiscall*)(LevelBrowserLayer*, gd::GJSearchObject*)>(base + 0x89570)(this, search);
+		}
+		
 
 		static cocos2d::CCScene* scene(gd::GJSearchObject* obj) {
 			auto scene = cocos2d::CCScene::create();

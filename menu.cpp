@@ -1163,6 +1163,7 @@ void RenderMain() {
             }
             ImGui::Checkbox("Show Player Hitbox", &setting().onPlayerHitbox);
             ImGui::Checkbox("Show Object Hitbox", &setting().onObjHitbox);
+            ImGui::Checkbox("Hitboxes on Death", &setting().onHitboxesOnDeath);
             ImGui::Checkbox("Start Pos Switcher", &setting().onStartPosSwitcher);
         }
 
@@ -1862,13 +1863,15 @@ void RenderMain() {
             ImGui::SetWindowFontScale(setting().UISize);
             ImGui::Checkbox("Show Percents", &setting().onShowPercents);
             ImGui::Checkbox("Cheat Indicator", &setting().onCheatIndicator);
-            ImGui::Checkbox("Clk Timer", &setting().onNoclipAcc);
+            ImGui::Checkbox("Clk Timer", &setting().onClkTimer);
             ImGui::Checkbox("Safe Mode label", &setting().onSafeModeLabel);
             ImGui::Checkbox("Clock", &setting().onGlobalTime);
             ImGui::Checkbox("Show FPS", &setting().onFPSShow);
             ImGui::Checkbox("Attempts", &setting().onAttemptsLabel);
             ImGui::Checkbox("Jumps", &setting().onJumpsLabel);
             ImGui::Checkbox("isColliding", &setting().onCollidingLabel);
+            ImGui::Checkbox("Noclip Deaths counter", &setting().onNoclipDeaths);
+            ImGui::Checkbox("Noclip Accuracy", &setting().onNoclipAcc);
 
             ImGui::SetNextItemWidth(150 * setting().UISize);
             ImGui::InputText("##message", setting().message, IM_ARRAYSIZE(setting().message));

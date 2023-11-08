@@ -9,9 +9,6 @@ namespace CreatorLayer
 	inline bool(__thiscall* CreatorLayer_menu)();
 	void __fastcall CreatorLayer_menu_H();
 
-	inline bool(__thiscall* GJListLayer_editing_init)();
-	void __fastcall GJListLayer_editing_init_H();
-
 	class Callback
 	{
 	public:
