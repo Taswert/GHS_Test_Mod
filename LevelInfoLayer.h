@@ -21,6 +21,8 @@ namespace LevelInfoLayer
 		void infoButton(CCObject*);
 		void rateButton(CCObject*);
 		void unrateButton(CCObject*);
+		void addToHofButton(CCObject*);
+		void removeFromHofButton(CCObject*);
 	};
 }
 

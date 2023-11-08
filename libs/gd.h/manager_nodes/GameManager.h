@@ -236,6 +236,9 @@ namespace gd {
 		PlayLayer* getPlayLayer() {
 			return from<PlayLayer*>(this, 0x144);
 		}
+		int getUserID() {
+			return from<int>(gd::GameManager::sharedState(), 0x188);
+		}
 		//PlayLayer* getPlayLayer() { return m_pPlayLayer; }
 		LevelEditorLayer* getEditorLayer() { return m_pLevelEditorLayer; }
 	};

@@ -28,7 +28,7 @@ public:
     static auto create() {
         return reinterpret_cast<GJGameLevel * (__stdcall*)()>(base + 0x61b30)(); //0x621C0 - GD 1.92
     }
-    /*auto getPassword() {
+    auto getPassword() {
         return from<int>(this, 0x200);
     }
     auto getLikes() {
@@ -36,7 +36,7 @@ public:
     }
     auto getDownloads() {
         return from<int>(this, 0x1BC);
-    }*/
+    }
     auto getObjectCount() {
         return from<int>(this, 0x1AC);
     }

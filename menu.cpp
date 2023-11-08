@@ -1163,6 +1163,7 @@ void RenderMain() {
             }
             ImGui::Checkbox("Show Player Hitbox", &setting().onPlayerHitbox);
             ImGui::Checkbox("Show Object Hitbox", &setting().onObjHitbox);
+            ImGui::Checkbox("Hitboxes on Death", &setting().onHitboxesOnDeath);
             ImGui::Checkbox("Start Pos Switcher", &setting().onStartPosSwitcher);
         }
 

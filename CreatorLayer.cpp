@@ -4,16 +4,15 @@
 #include "CreatorLayer.h"
 
 CCMenu* creatorLayerMenu = nullptr;
-cocos2d::CCLabelBMFont* gjListLabel = nullptr;
 
 void CreatorLayer::Callback::onHallOfFame(CCObject*) {
     auto search = gd::GJSearchObject::create(97);
     auto lvlbrowserscene = cocos2d::CCScene::create();
     auto lvlbrowser = gd::LevelBrowserLayer::create(search);
     auto list = from<gd::GJListLayer*>(lvlbrowser, 0x124);
-    gjListLabel->setString("Hall of Fame");
     std::cout << lvlbrowser << std::endl;
     lvlbrowserscene->addChild(lvlbrowser);
+    //lvlbrowser->loadPage(search);
 
     //auto lvlbrowserscene = MyLvlBrowserLayer::scene(search);
 
@@ -97,11 +96,4 @@ void __fastcall CreatorLayer::CreatorLayer_menu_H() {
         mov creatorLayerMenu, eax
     }
     CreatorLayer::CreatorLayer_menu();
-}
-
-void __fastcall CreatorLayer::GJListLayer_editing_init_H() {
-    _asm {
-        mov gjListLabel, eax
-    }
-    CreatorLayer::GJListLayer_editing_init();
 }

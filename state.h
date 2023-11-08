@@ -94,6 +94,7 @@ struct SettingStruct {
     bool onHidePause = false;
     bool onObjHitbox = false;
     bool onPlayerHitbox = false;
+    bool onHitboxesOnDeath = false;
     bool onStartPosSwitcher = false;
 
     bool onDebugLabels = false;
@@ -128,7 +129,7 @@ struct SettingStruct {
     char message[30] = "Your Text";
 
 
-    bool isAdmin = false;
+    int roleType = 0;
 };
     
 

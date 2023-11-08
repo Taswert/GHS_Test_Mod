@@ -116,6 +116,10 @@ namespace gd {
 		float getAudioScale() {
 			return from<float>(this, 0x4C8);
 		}
+
+		bool getIsDead() {
+			return from<bool>(this, 0x46D);
+		}
 	};
 }
 

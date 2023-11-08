@@ -136,6 +136,48 @@ void drawCircleObj(CCDrawNode* drawer, gd::GameObject* ob, ccColor4F col) {
     drawer->drawPolygon(vert, N, { 0, 0, 0, 0 }, 0.5, col);
 }
 
+void drawPlayerHitbox(gd::PlayerObject* player, CCDrawNode* drawNode)
+{
+    CCPoint pointRectangle[4];
+    CCRect rectRectangle;
+    CCRect rectRectangleSmall;
+    pointRectangle[0] = player->getOrientedBox()->getPoint1();
+    pointRectangle[1] = player->getOrientedBox()->getPoint2();
+    pointRectangle[2] = player->getOrientedBox()->getPoint3();
+    pointRectangle[3] = player->getOrientedBox()->getPoint4();
+
+    auto p1x = pointRectangle[0].x - pointRectangle[1].x;
+    auto p1y = pointRectangle[0].y - pointRectangle[1].y;
+    auto distance1 = sqrt(p1x * p1x + p1y * p1y);
+
+    auto p2x = pointRectangle[1].x - pointRectangle[2].x;
+    auto p2y = pointRectangle[1].y - pointRectangle[2].y;
+    auto distance2 = sqrt(p2x * p2x + p2y * p2y);
+
+    auto distanceS1 = distance1 / 4;
+    auto distanceS2 = distance2 / 4;
+
+    rectRectangle.setRect(player->getPositionX() - distance1 / 2, player->getPositionY() - distance2 / 2, distance1, distance2);
+    rectRectangleSmall.setRect(player->getPositionX() - distanceS1 / 2, player->getPositionY() - distanceS2 / 2, distanceS1, distanceS2);
+
+    drawRect(drawNode, rectRectangleSmall, { 0, 0, 1, 1 });
+    drawNode->drawPolygon(pointRectangle, 4, { 0, 0, 0, 0 }, 0.5, { 0.5, 0, 0, 1 });
+    drawRect(drawNode, rectRectangle, { 1, 0, 0, 1 });
+}
+
+void drawObjectHitbox(gd::GameObject* obj, CCDrawNode* drawNode) {
+    if (hazard.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 1, 0, 0, 1 });
+    else if (orbsnportals.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 0, 1, 0, 1 });
+    else if (solids.contains(obj->getObjectID()))
+        drawRectObj(drawNode, obj, { 0, 0, 1, 1 });
+    else if (ramps.contains(obj->getObjectID()))
+        drawTriangleObj(drawNode, obj, { 0, 0, 1, 1 });
+    else if (saws.contains(obj->getObjectID()))
+        drawCircleObj(drawNode, obj, { 1, 0, 0, 1 });
+}
+
 class ExitAlertProtocol : public gd::FLAlertLayerProtocol {
 protected:
 
@@ -150,21 +192,22 @@ protected:
 };
 ExitAlertProtocol eaProtocol;
 
-bool(__thiscall* destroyPlayer)(CCNode* selfig);
-void __fastcall destroyPlayer_H(CCNode* selfig)
+bool(__thiscall* PlayLayer_destroyPlayer)(gd::PlayLayer* self, gd::PlayerObject* player);
+void __fastcall PlayLayer_destroyPlayer_H(gd::PlayLayer* self, void*, gd::PlayerObject* player)
 {   
     isPlayerDead = true;
-    destroyPlayer(selfig);
-    
-    
-    if ((1 / cocos2d::CCDirector::sharedDirector()->getAnimationInterval()) < 60)
-    {
-        DeathTicks = DeathTicks - ((1 / cocos2d::CCDirector::sharedDirector()->getAnimationInterval()) / 60);
-    }
-    else 
-    
-    
-    auto pl = gd::GameManager::sharedState()->getPlayLayer();
+
+    //auto playerDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(124));
+    //std::cout << "player = " << player << std::endl;
+    //std::cout << "layer = " << self << std::endl;
+    //std::cout << "drawNode = " << playerDrawNode << std::endl;
+    //std::cout << std::endl;
+
+    //drawPlayerHitbox(self->player1(), playerDrawNode);
+
+    PlayLayer_destroyPlayer(self, player);
+
+    //auto pl = gd::GameManager::sharedState()->getPlayLayer();
 }
 
 bool(__thiscall* PlayLayer_resetLevel)(gd::PlayLayer* self);
@@ -217,10 +260,10 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
     playerDrawNode->setTag(124);
     self->layer()->addChild(playerDrawNode);
 
-    auto objDrawerNode = CCDrawNode::create();
-    objDrawerNode->setZOrder(1000);
-    objDrawerNode->setTag(125);
-    self->layer()->addChild(objDrawerNode);
+    auto objDrawNode = CCDrawNode::create();
+    objDrawNode->setZOrder(1000);
+    objDrawNode->setTag(125);
+    self->layer()->addChild(objDrawNode);
 
     auto secarr = self->getSections();
     auto objarr1 = self->getObjects();
@@ -274,18 +317,14 @@ bool __fastcall PlayLayer_init_H(gd::PlayLayer* self, void* edx, gd::GJGameLevel
             for (int j = 0; j < objarr->count(); j++)
             {
                 auto obj = reinterpret_cast<gd::GameObject*>(objarr->objectAtIndex(j));
-                if (hazard.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 1, 0, 0, 1 });
-                else if (orbsnportals.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 0, 1, 0, 1 });
-                else if (solids.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 0, 0, 1, 1 });
-                else if (ramps.contains(obj->getObjectID()))
-                    drawTriangleObj(objDrawerNode, obj, { 0, 0, 1, 1 });
-                else if (saws.contains(obj->getObjectID()))
-                    drawCircleObj(objDrawerNode, obj, { 1, 0, 0, 1 });
+                drawObjectHitbox(obj, objDrawNode);
             }
         }
+    }
+
+    if (setting().onPlayerHitbox) {
+        if (self->player1()) drawPlayerHitbox(self->player1(), playerDrawNode);
+        if (self->player2()) drawPlayerHitbox(self->player1(), playerDrawNode);
     }
 
 
@@ -574,70 +613,25 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
     }
 
     //Player Hiboxes
-    CCPoint pointRectangle[4];
-    CCRect rectRectangle;
-    CCRect rectRectangleSmall;
+    
     auto playerDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(124));
     playerDrawNode->clear();
-    if (setting().onPlayerHitbox)
+    if (setting().onPlayerHitbox || (self->player1()->getIsDead() && setting().onHitboxesOnDeath))
     {
         if (self->player1())
         {
-
-            pointRectangle[0] = self->player1()->getOrientedBox()->getPoint1();
-            pointRectangle[1] = self->player1()->getOrientedBox()->getPoint2();
-            pointRectangle[2] = self->player1()->getOrientedBox()->getPoint3();
-            pointRectangle[3] = self->player1()->getOrientedBox()->getPoint4();
-
-            auto p1x = pointRectangle[0].x - pointRectangle[1].x;
-            auto p1y = pointRectangle[0].y - pointRectangle[1].y;
-            auto distance1 = sqrt(p1x * p1x + p1y * p1y);
-
-            auto p2x = pointRectangle[1].x - pointRectangle[2].x;
-            auto p2y = pointRectangle[1].y - pointRectangle[2].y;
-            auto distance2 = sqrt(p2x * p2x + p2y * p2y);
-
-            auto distanceS1 = distance1 / 4;
-            auto distanceS2 = distance2 / 4;
-
-            rectRectangle.setRect(self->player1()->getPositionX() - distance1 / 2, self->player1()->getPositionY() - distance2 / 2, distance1, distance2);
-            rectRectangleSmall.setRect(self->player1()->getPositionX() - distanceS1 / 2, self->player1()->getPositionY() - distanceS2 / 2, distanceS1, distanceS2);
-
-            drawRect(playerDrawNode, rectRectangleSmall, { 0, 0, 1, 1 });
-            playerDrawNode->drawPolygon(pointRectangle, 4, { 0, 0, 0, 0 }, 0.5, { 0.5, 0, 0, 1 });
-            drawRect(playerDrawNode, rectRectangle, { 1, 0, 0, 1 });
+            drawPlayerHitbox(self->player1(), playerDrawNode);
         }
         if (self->player2())
         {
-            pointRectangle[0] = self->player2()->getOrientedBox()->getPoint1();
-            pointRectangle[1] = self->player2()->getOrientedBox()->getPoint2();
-            pointRectangle[2] = self->player2()->getOrientedBox()->getPoint3();
-            pointRectangle[3] = self->player2()->getOrientedBox()->getPoint4();
-
-            auto p1x = pointRectangle[0].x - pointRectangle[1].x;
-            auto p1y = pointRectangle[0].y - pointRectangle[1].y;
-            auto distance1 = sqrt(p1x * p1x + p1y * p1y);
-
-            auto p2x = pointRectangle[1].x - pointRectangle[2].x;
-            auto p2y = pointRectangle[1].y - pointRectangle[2].y;
-            auto distance2 = sqrt(p2x * p2x + p2y * p2y);
-
-            auto distanceS1 = distance1 / 4;
-            auto distanceS2 = distance2 / 4;
-
-            rectRectangle.setRect(self->player2()->getPositionX() - distance1 / 2, self->player2()->getPositionY() - distance2 / 2, distance1, distance2);
-            rectRectangleSmall.setRect(self->player2()->getPositionX() - distanceS1 / 2, self->player2()->getPositionY() - distanceS2 / 2, distanceS1, distanceS2);
-
-            drawRect(playerDrawNode, rectRectangleSmall, { 0, 0, 1, 1 });
-            playerDrawNode->drawPolygon(pointRectangle, 4, { 0, 0, 0, 0 }, 0.5, { 0.5, 0, 0, 1 });
-            drawRect(playerDrawNode, rectRectangle, { 1, 0, 0, 1 });
+            drawPlayerHitbox(self->player2(), playerDrawNode);
         }
     }
 
     //Object Hitboxes
-    auto objDrawerNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(125));
-    objDrawerNode->clear();
-    if (setting().onObjHitbox)
+    auto objDrawNode = reinterpret_cast<CCDrawNode*>(self->layer()->getChildByTag(125));
+    objDrawNode->clear();
+    if (setting().onObjHitbox || (self->player1()->getIsDead() && setting().onHitboxesOnDeath))
     {
         for (int i = self->getFirstVisibleSection() + 1; i < self->getLastVisibleSection() - 1; i++)
         {
@@ -649,16 +643,7 @@ void __fastcall PlayLayer_update_H(gd::PlayLayer* self, void*, float dt)
             for (int j = 0; j < objarr->count(); j++)
             {
                 auto obj = reinterpret_cast<gd::GameObject*>(objarr->objectAtIndex(j));
-                if (hazard.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 1, 0, 0, 1 });
-                else if (orbsnportals.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 0, 1, 0, 1 });
-                else if (solids.contains(obj->getObjectID()))
-                    drawRectObj(objDrawerNode, obj, { 0, 0, 1, 1 });
-                else if (ramps.contains(obj->getObjectID()))
-                    drawTriangleObj(objDrawerNode, obj, { 0, 0, 1, 1 });
-                else if (saws.contains(obj->getObjectID()))
-                    drawCircleObj(objDrawerNode, obj, { 1, 0, 0, 1 });
+                drawObjectHitbox(obj, objDrawNode);
             }
         }
     }
@@ -912,27 +897,27 @@ public:
         if (readBuffer == "1")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cb>moderator</c> privilegies!", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 1;
         }
         else if (readBuffer == "2")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cp>elder moderator</c> privilegies!", "Ok", nullptr, 280.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 2;
         }
         else if (readBuffer == "3")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cr>administrator</c> privilegies!", "Ok", nullptr, 280.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 3;
         }
         else if (readBuffer == "4")
         {
             gd::FLAlertLayer::create(nullptr, "Congratulations!", "You have <cy>owner</c> privilegies!", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = true;
+            setting().roleType = 4;
         }
         else if (readBuffer == "-1")
         {
             gd::FLAlertLayer::create(nullptr, "Admin Check", "You have no moderator privilegies.", "Ok", nullptr, 260.f, false, 0)->show();
-            setting().isAdmin = false;
+            setting().roleType = 0;
         }
         else gd::FLAlertLayer::create(nullptr, "Something went wrong...", "You have no internet connection or servers are down.", "Ok", nullptr, 300.f, false, 0)->show();
         std::cout << "ADMIN CHECK PROTOCOL" << std::endl;
@@ -964,8 +949,11 @@ void adminInitCheck()
         curl_easy_cleanup(curl);
     }
     curl_global_cleanup();
-    if (readBuffer == "1" || readBuffer == "2" || readBuffer == "3" || readBuffer == "4") setting().isAdmin = true;
-    else if (readBuffer == "-1") setting().isAdmin = false;
+    if (readBuffer == "1") setting().roleType = 1;
+    else if (readBuffer == "2") setting().roleType = 2;
+    else if (readBuffer == "3") setting().roleType = 3;
+    else if (readBuffer == "4") setting().roleType = 4;
+    else if (readBuffer == "-1") setting().roleType = 0;
     std::cout << "ADMIN INIT CHECK PROTOCOL" << std::endl;
     std::cout << postfield << std::endl;
     std::cout << readBuffer << std::endl;
@@ -1436,7 +1424,7 @@ DWORD WINAPI my_thread(void* hModule) {
     WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x8A3DB), "\x83\xF8\x61\x0F\x84\xAB\x01\x00\x00\x90\x90\x90\x90\x90\x90\x90\x90\x90", 18, NULL); //HallOfShame onBack patching
     WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x324000), "\x48\x61\x6c\x6c\x20\x6f\x66\x20\x46\x61\x6d\x65\x00", 13, NULL); //Hall of Shame string
     WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(gd::base + 0x89D15), "\x75\x0A\xBE\x1C\x3E\x52\x00\xE9\x81\x01\x00\x00\x83\xF8\x62\x75\x0A\xBE\x2C\x3E\x52\x00\xE9\x73\x01\x00\x00\x83\xF8\x61\x75\x0A\xBE\x00\x40\x72\x00\xE9\x64\x01\x00\x00\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 55, NULL);
-     //also Hall of Shame string (but updating)
+    //also Hall of Shame string (but updating)
     //75 0A BE 1C 3E 52 00 E9 81 01 00 00 83 F8 62 75 0A BE 2C 3E 52 00 E9 73 01 00 00 83 F8 61 75 0A BE 00 40 72 00 E9 64 01 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90
 
     ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(0x4EE9DA), &setting().NoclipByte, 1, 0);
@@ -1449,12 +1437,12 @@ DWORD WINAPI my_thread(void* hModule) {
     //0xd61b0 EditBTN
     //0xd64c0 MenuBTN!
     
-    /*
+    
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0xee990),
-        reinterpret_cast<void*>(&destroyPlayer_H),
-        reinterpret_cast<void**>(&destroyPlayer));
-    */
+        reinterpret_cast<void*>(&PlayLayer_destroyPlayer_H),
+        reinterpret_cast<void**>(&PlayLayer_destroyPlayer));
+    
     //base + 0x89d15
 
     AllocConsole();
@@ -1464,10 +1452,6 @@ DWORD WINAPI my_thread(void* hModule) {
         reinterpret_cast<void*>(&GraphicsSettingsApply_H),
         reinterpret_cast<void**>(&GraphicsSettingsApply));*/
     //gd::base + 0x48a3cc
-    MH_CreateHook(
-        reinterpret_cast<void*>(gd::base + 0x811ef),
-        CreatorLayer::GJListLayer_editing_init_H,
-        reinterpret_cast<void**>(&CreatorLayer::GJListLayer_editing_init));
     MH_CreateHook(
         reinterpret_cast<void*>(gd::base + 0x2cd53),
         CreatorLayer::CreatorLayer_menu_H,
