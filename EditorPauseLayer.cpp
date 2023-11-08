@@ -4,13 +4,74 @@
 #include "state.h"
 
 
+CCLayer* editorPauseLayer;
 
-//bool isPressed = false;
-void EditorPauseLayer::Callback::TestButton(CCObject*)
+std::string hexConverter(int n) {
+	std::string hex;
+	//loop runs til n is greater than 0
+	while (n > 0) {
+		int r = n % 16;
+		//remainder converted to hexadecimal digit
+		char c = (r < 10) ? ('0' + r) : ('A' + r - 10);
+		//hexadecimal digit added to start of the string
+		hex = c + hex;
+		n /= 16;
+	}
+	hex = "0x" + hex;
+	return hex;
+}
+
+
+
+void EditorPauseLayer::Callback::SelectAbsolutelyAllButton(CCObject*)
 {
-	//isPressed = true;
-	const auto flalert = gd::FLAlertLayer::create(nullptr, "Success", "Your FLAlertLayer is working as it should!", "ladno", nullptr, 320.f, false, 0);
-	flalert->show();
+	auto leveleditor = from<gd::LevelEditorLayer*>(editorPauseLayer, 0x1A8);
+	auto editorUI = leveleditor->getEditorUI();
+
+	auto objs = CCArray::create();
+	for (int i = 0; i < (leveleditor->getAllObjects()->count()); i++)
+	{
+		objs->addObjectsFromArray(reinterpret_cast<CCArray*>(leveleditor->getAllObjects()->objectAtIndex(i)));
+	}
+	editorUI->selectObjects(objs);
+	editorUI->updateButtons();
+}
+
+void EditorPauseLayer::Callback::VanillaSelectAllButton(CCObject*)
+{
+	auto leveleditor = from<gd::LevelEditorLayer*>(editorPauseLayer, 0x1A8);
+	auto editorUI = leveleditor->getEditorUI();
+
+	auto objs = CCArray::create();
+	for (int i = 0; i < (leveleditor->getAllObjects()->count()); i++)
+	{
+		objs->addObjectsFromArray(reinterpret_cast<CCArray*>(leveleditor->getAllObjects()->objectAtIndex(i)));
+	}
+
+	auto objs2 = CCArray::create();
+	for (int i = 0; i < (objs->count()); i++)
+	{
+		if (reinterpret_cast<gd::GameObject*>(objs->objectAtIndex(i))->getGroup() == leveleditor->getLayerGroup() || leveleditor->getLayerGroup() == -1)
+			objs2->addObject(objs->objectAtIndex(i));
+	}
+	editorUI->selectObjects(objs2);
+	editorUI->updateButtons();
+
+	//std::string flalertstr = "Objects count: " + std::to_string(editorUI->getSomeObjects()->count()) +
+	//	"\nArray p: " + hexConverter(reinterpret_cast<int>(editorUI->getSomeObjects())) +
+	//	"\nEditorUI p: " + hexConverter(reinterpret_cast<int>(editorUI)) +
+	//	"\nLevelEditorLayer p: " + hexConverter(reinterpret_cast<int>(leveleditor));
+
+	//std::string flalertstr = "Objects count: " + std::to_string(leveleditor->getAllObjects()->count()) +
+	//	"\nArray p: " + hexConverter(reinterpret_cast<int>(leveleditor->getAllObjects())) +
+	//	"\nEditorUI p: " + hexConverter(reinterpret_cast<int>(editorUI)) +
+	//	"\nLevelEditorLayer p: " + hexConverter(reinterpret_cast<int>(leveleditor));
+
+	 //leveleditor->getAllObjects()
+	//leveleditor->removeAllObjects();
+	//const auto flalert = gd::FLAlertLayer::create(nullptr, "Success", flalertstr.c_str(), "ladno", nullptr, 320.f, false, 0);
+	//std::cout << flalertstr << std::endl;
+	//flalert->show();
 }
 
 void EditorPauseLayer::Callback::EEToggler(CCObject*)
@@ -190,6 +251,7 @@ auto FreeEditorScrollSprite(CCSprite* toggleOn, CCSprite* toggleOff)
 
 bool __fastcall EditorPauseLayer::EditorPauseLayer_init_hook(CCLayer* self)
 {
+	editorPauseLayer = self;
 	bool result = EditorPauseLayer::EditorPauseLayer_init(self);
 	auto director = CCDirector::sharedDirector();
 	auto size = director->getWinSize();
@@ -267,11 +329,25 @@ bool __fastcall EditorPauseLayer::EditorPauseLayer_init_hook(CCLayer* self)
 	menu->addChild(FESlabel);
 
 	//auto passInfoSprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
-	/*auto sprite = gd::ButtonSprite::create("Select All", 0x32, 0, 0.6f, true, "bigFont.fnt", "GJ_button_04.png", 30.0);
-	auto TestButton = gd::CCMenuItemSpriteExtra::create(sprite, nullptr, self, menu_selector(EditorPauseLayer::Callback::TestButton));
-	TestButton->setPosition({scrnRight - 80, 30});
-	menu->addChild(TestButton);*/
+	auto vanillaSelectAllSprite = gd::ButtonSprite::create("Select All\non layer", 0x32, 0, 0.6f, true, "bigFont.fnt", "GJ_button_04.png", 30.0);
+	auto vanillaSelectAllButton = gd::CCMenuItemSpriteExtra::create(vanillaSelectAllSprite, nullptr, self, menu_selector(EditorPauseLayer::Callback::VanillaSelectAllButton));
+	vanillaSelectAllButton->setPosition({scrnRight - 80, 30});
+	menu->addChild(vanillaSelectAllButton);
+
+	auto SelectAbsolutelyAllSprite = gd::ButtonSprite::create("Select All", 0x32, 0, 0.6f, true, "bigFont.fnt", "GJ_button_04.png", 30.0);
+	auto SelectAbsolutelyAllButton = gd::CCMenuItemSpriteExtra::create(SelectAbsolutelyAllSprite, nullptr, self, menu_selector(EditorPauseLayer::Callback::SelectAbsolutelyAllButton));
+	SelectAbsolutelyAllButton->setPosition({ scrnRight - 80, 75 });
+	menu->addChild(SelectAbsolutelyAllButton);
 	
+	if (setting().onDebugLabels)
+	{
+		auto eplbl = CCLabelBMFont::create("", "chatFont.fnt");
+		eplbl->setString(CCString::createWithFormat("epl pointer: %p", self)->getCString());
+		eplbl->setAnchorPoint({ 1.f, 0.5f });
+		eplbl->setPosition(CCDirector::sharedDirector()->getScreenRight() - 120, CCDirector::sharedDirector()->getScreenTop() - 10);
+		eplbl->setScale(0.5f);
+		self->addChild(eplbl);
+	}
 
 	self->addChild(menu);
 	return result;

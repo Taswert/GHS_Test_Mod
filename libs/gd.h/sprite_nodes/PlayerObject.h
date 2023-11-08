@@ -20,12 +20,30 @@ namespace gd {
 				base + 0xd7db0
 				)(this);
 		}
-		bool collidedWithObject(cocos2d::CCRect* rect) {
-			return reinterpret_cast<bool(__thiscall*)(PlayerObject*, cocos2d::CCRect*)>(
+		bool collidedWithObject(float fl, gd::GameObject* obj, cocos2d::CCRect* rect) {
+			return reinterpret_cast<bool(__thiscall*)(PlayerObject*, float fl, gd::GameObject* obj, cocos2d::CCRect*)>(
 				base + 0xdaa60
-				)(this, rect);
+				)(this, fl, obj, rect);
 		}
 
+		//bool collidedWithObject(float fl, gd::GameObject* obj)
+		//{
+		//	int myRect = 0;
+		//	auto rect = obj->getObjectRect(0);
+		//	return collidedWithObject(fl, obj, rect);
+		//}
+
+		static auto create(int idk1, int idk2, cocos2d::CCLayer* layer) {
+			return reinterpret_cast<PlayerObject * (__fastcall*)(int, int, cocos2d::CCLayer*)>(
+				base + 0xd71b0)(idk1, idk2, layer);
+		}
+
+		auto getOBB2D() {
+			return from<gd::OBB2D*>(this, 0x1D0);
+		}
+		auto getOrientedBox() {
+			return reinterpret_cast<gd::OBB2D * (__thiscall*)(PlayerObject*)>(base + 0xdf7a0)(this);
+		}
 		auto getFirstColor() {
 			return from<cocos2d::CCSprite*>(this, 0x370)->getColor();
 		}

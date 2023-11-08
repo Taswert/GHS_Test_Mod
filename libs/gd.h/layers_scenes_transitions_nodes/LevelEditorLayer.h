@@ -17,7 +17,9 @@ class LevelEditorLayer : public GJBaseGameLayer {
         EditorUI* m_pEditorUI;
 
     public:
-        EditorUI* getEditorUI() { return this->m_pEditorUI; }
+        EditorUI* getEditorUI() {
+            return from<EditorUI*>(this, 0x15C);
+        }
 
         void removeObject(GameObject * obj, bool idk) {
             reinterpret_cast<void(__thiscall*)(
@@ -59,7 +61,10 @@ class LevelEditorLayer : public GJBaseGameLayer {
         void removeAllObjects() {
             return reinterpret_cast<void(__thiscall*)(LevelEditorLayer*)>(base + 0x8d770)(this);
         }
-
+        int getLayerGroup()
+        {
+            return from<int>(this, 0x12C);
+        }
         //0x8d770
 
         int getCurrentLayer() { return m_nCurrentLayer; }

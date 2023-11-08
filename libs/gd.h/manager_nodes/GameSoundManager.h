@@ -17,14 +17,14 @@ namespace gd {
 	public:
 		static GameSoundManager* sharedState() {
 			return reinterpret_cast<GameSoundManager* (__stdcall*)()>(
-				base + 0x24800
+				base + 0x17190
 				)();
 		}
 		static void playSound(std::string sName) {
 			reinterpret_cast<void(__stdcall*)(
 				std::string
 			)>(
-				base + 0x25450
+				base + 0x178b0
 			)(
 				sName
 			);
